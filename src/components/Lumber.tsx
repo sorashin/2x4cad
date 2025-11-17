@@ -6,6 +6,7 @@ import type { Lumber as LumberType } from '../types/lumber';
 import { LUMBER_DIMENSIONS } from '../types/lumber';
 import { useLumberStore } from '../stores/lumber';
 import { mmToUnits } from '../constants';
+import { LumberTransformControls } from './LumberTransformControls';
 
 interface LumberProps {
   lumber: LumberType;
@@ -55,33 +56,40 @@ export function Lumber({ lumber }: LumberProps) {
   };
 
   return (
-    <mesh
-      ref={meshRef}
-      position={centerPosition}
-      quaternion={quaternion}
-      onClick={handleClick}
-    >
-      <boxGeometry
-        args={[
-          mmToUnits(dimensions.width),
-          mmToUnits(lumber.length),
-          mmToUnits(dimensions.height),
-        ]}
-      />
-      <meshStandardMaterial
-        color={isSelected ? '#4CAF50' : '#D2691E'}
-        emissive={isSelected ? '#2E7D32' : '#000000'}
-        emissiveIntensity={isSelected ? 0.3 : 0}
-      />
-      {/* 選択時に輪郭線を表示 */}
-      {isSelected && (
-        <Edges
-          scale={1}
-          threshold={15}
-          color="#00ff00"
-          linewidth={3}
+    <>
+      <mesh
+        ref={meshRef}
+        position={centerPosition}
+        quaternion={quaternion}
+        onClick={handleClick}
+      >
+        <boxGeometry
+          args={[
+            mmToUnits(dimensions.width),
+            mmToUnits(lumber.length),
+            mmToUnits(dimensions.height),
+          ]}
         />
+        <meshStandardMaterial
+          color={isSelected ? '#4CAF50' : '#D2691E'}
+          emissive={isSelected ? '#2E7D32' : '#000000'}
+          emissiveIntensity={isSelected ? 0.3 : 0}
+        />
+        {/* 選択時に輪郭線を表示 */}
+        {isSelected && (
+          <Edges
+            scale={1}
+            threshold={15}
+            color="#00ff00"
+            linewidth={3}
+          />
+        )}
+      </mesh>
+
+      {/* 選択時にTransformControlsを表示 */}
+      {isSelected && (
+        <LumberTransformControls lumberId={lumber.id} meshRef={meshRef} />
       )}
-    </mesh>
+    </>
   );
 }

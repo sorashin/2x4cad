@@ -53,9 +53,16 @@ function App() {
         }}
       >
         <h3 style={{ margin: '0 0 10px 0' }}>2x4 CAD</h3>
+        <p style={{ margin: '5px 0' }}>クリック: 角材を選択</p>
         <p style={{ margin: '5px 0' }}>Shift + クリック: 複数選択</p>
+        <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid #666' }} />
+        <p style={{ margin: '5px 0' }}><strong>T</strong>キー: 移動モード</p>
+        <p style={{ margin: '5px 0' }}><strong>R</strong>キー: 回転モード</p>
+        <p style={{ margin: '5px 0' }}><strong>E</strong>キー: スケール（伸縮）モード</p>
+        <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid #666' }} />
         <p style={{ margin: '5px 0' }}>Ctrl/Cmd + Z: 元に戻す</p>
         <p style={{ margin: '5px 0' }}>Ctrl/Cmd + Shift + Z: やり直す</p>
+        <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid #666' }} />
         <p style={{ margin: '5px 0' }}>マウスドラッグ: カメラ回転</p>
         <p style={{ margin: '5px 0' }}>ホイール: ズーム</p>
       </div>
