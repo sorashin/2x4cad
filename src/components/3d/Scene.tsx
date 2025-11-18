@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
-import { useLumberStore } from '../stores/lumber';
+import { useLumberStore } from '../../stores/lumber';
 import { Lumber } from './Lumber';
 
 export function Scene() {
@@ -11,7 +11,7 @@ export function Scene() {
   };
 
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div className="w-screen h-screen">
       <Canvas
         camera={{ position: [50, 50, 50], fov: 50 }}
       >
@@ -38,11 +38,12 @@ export function Scene() {
         {/* 背景クリック用の透明なPlane */}
         <mesh
           rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, -0.01, 0]}
+          position={[0, -1, 0]}
           onClick={handleBackgroundClick}
+          renderOrder={-1}
         >
           <planeGeometry args={[1000, 1000]} />
-          <meshBasicMaterial transparent opacity={0} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
 
         {/* 角材を描画 */}
@@ -56,3 +57,4 @@ export function Scene() {
     </div>
   );
 }
+

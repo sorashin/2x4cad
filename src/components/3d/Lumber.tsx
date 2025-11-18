@@ -2,10 +2,10 @@ import { useRef } from 'react';
 import { Mesh, Quaternion as ThreeQuaternion, Vector3 as ThreeVector3 } from 'three';
 import type { ThreeEvent } from '@react-three/fiber';
 import { Edges } from '@react-three/drei';
-import type { Lumber as LumberType } from '../types/lumber';
-import { LUMBER_DIMENSIONS } from '../types/lumber';
-import { useLumberStore } from '../stores/lumber';
-import { mmToUnits } from '../constants';
+import type { Lumber as LumberType } from '../../types/lumber';
+import { LUMBER_DIMENSIONS } from '../../types/lumber';
+import { useLumberStore } from '../../stores/lumber';
+import { mmToUnits } from '../../constants';
 import { LumberTransformControls } from './LumberTransformControls';
 
 interface LumberProps {
@@ -93,3 +93,4 @@ export function Lumber({ lumber }: LumberProps) {
     </>
   );
 }
+

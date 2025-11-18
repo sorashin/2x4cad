@@ -3,11 +3,11 @@ import { TransformControls } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import { Vector3 as ThreeVector3 } from 'three';
 import type { Mesh } from 'three';
-import { useLumberStore } from '../stores/lumber';
-import { useHistoryStore } from '../stores/history';
-import { UpdateLumberHistory } from '../histories/UpdateLumberHistory';
-import { unitsToMm, mmToUnits } from '../constants';
-import type { Vector3, Quaternion } from '../types/lumber';
+import { useLumberStore } from '../../stores/lumber';
+import { useHistoryStore } from '../../stores/history';
+import { UpdateLumberHistory } from '../../histories/UpdateLumberHistory';
+import { unitsToMm, mmToUnits } from '../../constants';
+import type { Vector3, Quaternion } from '../../types/lumber';
 
 interface LumberTransformControlsProps {
   lumberId: string;
@@ -127,3 +127,4 @@ export function LumberTransformControls({ lumberId, meshRef }: LumberTransformCo
     />
   );
 }
+
