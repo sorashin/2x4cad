@@ -4,6 +4,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useLumberStore } from './stores/lumber';
 import { LumberType } from './types/lumber';
 import { Toolbar } from './components/ui/Toolbar';
+import { UIMachineProvider } from './contexts/UIMachineContext';
 
 function App() {
   // キーボードショートカット（Ctrl+Z / Ctrl+Shift+Z）を有効化
@@ -36,11 +37,13 @@ function App() {
   }, [addLumber]);
 
   return (
-    <div className="w-screen h-screen m-0 p-0">
-      <Scene />
+    <UIMachineProvider>
+      <div className="w-screen h-screen m-0 p-0">
+        <Scene />
 
-      <Toolbar />
-    </div>
+        <Toolbar />
+      </div>
+    </UIMachineProvider>
   );
 }
 
