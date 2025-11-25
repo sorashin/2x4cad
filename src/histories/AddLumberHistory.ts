@@ -4,8 +4,11 @@ import type { HistoryBase } from './HistoryBase';
 
 export class AddLumberHistory implements HistoryBase {
   private lumberData: Lumber | null = null;
+  private lumberId: string;
 
-  constructor(private lumberId: string) {}
+  constructor(lumberId: string) {
+    this.lumberId = lumberId;
+  }
 
   undo() {
     const store = useLumberStore.getState();

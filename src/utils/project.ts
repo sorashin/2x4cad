@@ -1,4 +1,4 @@
-import { Project } from '../types/lumber';
+import type { Project } from '../types/lumber';
 
 const CURRENT_VERSION = '1.0.0';
 

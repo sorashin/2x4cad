@@ -19,19 +19,24 @@ interface PreviewLumberProps {
 export function PreviewLumber({ start, end }: PreviewLumberProps) {
   const selectedLumberType = useInteractionStore((s) => s.selectedLumberType);
   const activeSnapFace = useInteractionStore((s) => s.activeSnapFace);
+  const lockedFaceSnap = useInteractionStore((s) => s.lockedFaceSnap);
   const dimensions = LUMBER_DIMENSIONS[selectedLumberType];
   const snapToGridEnabled = useSettingsStore((s) => s.snapToGrid);
   const gridSize = useSettingsStore((s) => s.gridSize);
 
-  // 始点は常にグリッド交点にスナップ
-  const snappedStart = snapToGridEnabled ? snapToGrid(start, gridSize) : start;
+  // 始点のスナップ処理
+  // lockedFaceSnapが有効な場合は、既に中心線スナップが適用されているのでグリッドスナップしない
+  const snappedStart = (lockedFaceSnap || !snapToGridEnabled) ? start : snapToGrid(start, gridSize);
   
   // 終点は面スナップが適用されている場合はそのまま使用、そうでなければグリッドスナップを適用
   // （InteractionHandler で既に面スナップまたはグリッドスナップが適用されている）
   let snappedEnd = end;
   
-  // 軸スナップを適用（面スナップされていない軸に対してのみ）
-  snappedEnd = snapToAxisWithFaceSnap(snappedStart, snappedEnd, activeSnapFace?.axis);
+  // 方向ロックが有効な場合は軸スナップをスキップ
+  if (!lockedFaceSnap) {
+    // 軸スナップを適用（面スナップされていない軸に対してのみ）
+    snappedEnd = snapToAxisWithFaceSnap(snappedStart, snappedEnd, activeSnapFace?.axis);
+  }
 
   // Calculate direction and length
   const dx = snappedEnd.x - snappedStart.x;
@@ -43,15 +48,22 @@ export function PreviewLumber({ start, end }: PreviewLumberProps) {
     return null; // Don't render if length is too small
   }
 
-  // Calculate direction vector
-  const dir = {
-    x: dx / length,
-    y: dy / length,
-    z: dz / length,
-  };
-
-  // Calculate rotation quaternion from Y-axis to direction
-  const quaternion = calculateRotationQuaternion({ x: 0, y: 1, z: 0 }, dir);
+  // 方向ロックが有効な場合は固定回転を使用、そうでなければ方向ベクトルから計算
+  let quaternion: { x: number; y: number; z: number; w: number };
+  if (lockedFaceSnap) {
+    // 固定回転を使用（角を合わせるため）
+    quaternion = lockedFaceSnap.rotation;
+  } else {
+    // Calculate direction vector
+    const dir = {
+      x: dx / length,
+      y: dy / length,
+      z: dz / length,
+    };
+    
+    // Calculate rotation quaternion from Y-axis to direction
+    quaternion = calculateRotationQuaternion({ x: 0, y: 1, z: 0 }, dir);
+  }
 
   // Position at start point (mm → Three.js units)
   const position = new ThreeVector3(
@@ -125,6 +137,20 @@ export function PreviewLumber({ start, end }: PreviewLumberProps) {
         >
           {`始点: (${snappedStart.x}, ${snappedStart.y}, ${snappedStart.z})`}
         </Text>
+        {/* 90度回転が適用されている場合の表示 */}
+        {lockedFaceSnap?.isRotated90 && (
+          <Text
+            fontSize={0.3}
+            color="#00FFFF"
+            anchorX="left"
+            anchorY="top"
+            outlineWidth={0.03}
+            outlineColor="#000000"
+            position={[0.2, -0.1, 0]}
+          >
+            [90°回転済み]
+          </Text>
+        )}
       </Billboard>
       {/* 終点座標を表示（面スナップ時はハイライト） */}
       <Billboard 

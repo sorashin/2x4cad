@@ -63,10 +63,13 @@ export function useUIMode() {
     placeEndPoint: (point: Vector3) => {
       const start = useInteractionStore.getState().startPoint;
       const lumberType = useInteractionStore.getState().selectedLumberType;
+      const lockedFaceSnap = useInteractionStore.getState().lockedFaceSnap;
 
       if (start) {
         // Create and execute the command
-        const command = new AddLumberCommand(lumberType, start, point);
+        // Pass rotation from lockedFaceSnap if available (for proper alignment)
+        const rotation = lockedFaceSnap?.rotation;
+        const command = new AddLumberCommand(lumberType, start, point, rotation);
         command.execute();
       }
 

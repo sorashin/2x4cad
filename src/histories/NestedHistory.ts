@@ -1,7 +1,11 @@
 import type { HistoryBase } from './HistoryBase';
 
 export class NestedHistory implements HistoryBase {
-  constructor(private histories: HistoryBase[]) {}
+  private histories: HistoryBase[];
+
+  constructor(histories: HistoryBase[]) {
+    this.histories = histories;
+  }
 
   getHistories() {
     return this.histories;

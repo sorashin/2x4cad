@@ -1,7 +1,7 @@
 import { CommandBase } from "./CommandBase";
 import { useLumberStore } from "../stores/lumber";
 import { useHistoryStore } from "../stores/history";
-import type { Lumber, Vector3 } from "../types/lumber";
+import type { Lumber, Vector3, Quaternion } from "../types/lumber";
 import { LumberType } from "../types/lumber";
 
 /**
@@ -15,10 +15,12 @@ export class AddLumberCommand extends CommandBase {
   private type: LumberType;
   private start: Vector3;
   private end: Vector3;
+  private rotation?: Quaternion;
 
-  constructor(type: LumberType, start: Vector3, end: Vector3) {
+  constructor(type: LumberType, start: Vector3, end: Vector3, rotation?: Quaternion) {
     super();
     this.type = type;
+    this.rotation = rotation;
 
     // Snap end point to closest axis-aligned direction
     const snappedEnd = this.snapToAxis(start, end);
@@ -31,7 +33,7 @@ export class AddLumberCommand extends CommandBase {
    */
   execute(): string {
     const store = useLumberStore.getState();
-    this.lumberId = store.addLumber(this.type, this.start, this.end);
+    this.lumberId = store.addLumber(this.type, this.start, this.end, this.rotation);
 
     // Push to history
     const historyStore = useHistoryStore.getState();

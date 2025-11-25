@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Lumber, Vector3, Connection } from '../types/lumber';
+import type { Lumber, Vector3, Connection, Quaternion } from '../types/lumber';
 import { LumberType } from '../types/lumber';
 import { nanoid } from 'nanoid';
 
@@ -8,7 +8,7 @@ interface LumberStoreState {
   selectedIds: Set<string>;
 
   // CRUD操作
-  addLumber: (type: LumberType, start: Vector3, end: Vector3) => string;
+  addLumber: (type: LumberType, start: Vector3, end: Vector3, rotation?: Quaternion) => string;
   updateLumber: (id: string, updates: Partial<Lumber>) => void;
   deleteLumber: (id: string) => void;
   restoreLumber: (lumber: Lumber) => void;
@@ -28,7 +28,7 @@ export const useLumberStore = create<LumberStoreState>()((set, get) => ({
   lumbers: {},
   selectedIds: new Set<string>(),
 
-  addLumber: (type: LumberType, start: Vector3, end: Vector3) => {
+  addLumber: (type: LumberType, start: Vector3, end: Vector3, rotation?: Quaternion) => {
     const id = nanoid();
 
     // 始点から終点へのベクトルを計算
@@ -37,24 +37,31 @@ export const useLumberStore = create<LumberStoreState>()((set, get) => ({
     const dz = end.z - start.z;
     const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-    // 方向ベクトルを正規化
-    const dir = {
-      x: dx / length,
-      y: dy / length,
-      z: dz / length,
-    };
+    // 回転が指定されていない場合のみ計算
+    let finalRotation: Quaternion;
+    if (rotation) {
+      // 指定された回転を使用（PreviewLumberからの引き継ぎ）
+      finalRotation = rotation;
+    } else {
+      // 方向ベクトルを正規化
+      const dir = {
+        x: dx / length,
+        y: dy / length,
+        z: dz / length,
+      };
 
-    // デフォルトのY軸方向（0, 1, 0）から、ベクトル方向への回転を計算
-    // クォータニオンを計算（簡易版：Y軸からの回転）
-    const up = { x: 0, y: 1, z: 0 };
-    const rotation = calculateRotationQuaternion(up, dir);
+      // デフォルトのY軸方向（0, 1, 0）から、ベクトル方向への回転を計算
+      // クォータニオンを計算（簡易版：Y軸からの回転）
+      const up = { x: 0, y: 1, z: 0 };
+      finalRotation = calculateRotationQuaternion(up, dir);
+    }
 
     const lumber: Lumber = {
       id,
       type,
       position: start,
       length,
-      rotation,
+      rotation: finalRotation,
       connections: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),

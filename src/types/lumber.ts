@@ -1,9 +1,11 @@
 // 角材の種類
-export enum LumberType {
-  ONE_BY_FOUR = '1x4',    // 19x89mm
-  TWO_BY_FOUR = '2x4',    // 38x89mm
-  RAFTER = 'rafter'       // 30x30mm (垂木)
-}
+export const LumberType = {
+  ONE_BY_FOUR: '1x4',    // 19x89mm
+  TWO_BY_FOUR: '2x4',    // 38x89mm
+  RAFTER: 'rafter'       // 30x30mm (垂木)
+} as const;
+
+export type LumberType = typeof LumberType[keyof typeof LumberType];
 
 // 角材の寸法
 export const LUMBER_DIMENSIONS: Record<LumberType, { width: number; height: number }> = {
@@ -13,11 +15,13 @@ export const LUMBER_DIMENSIONS: Record<LumberType, { width: number; height: numb
 };
 
 // 接続方式
-export enum ConnectionType {
-  SCREW = 'screw',           // ビス止め
-  BRACKET = 'bracket',       // 金具
-  NONE = 'none'              // 接触のみ
-}
+export const ConnectionType = {
+  SCREW: 'screw',           // ビス止め
+  BRACKET: 'bracket',       // 金具
+  NONE: 'none'              // 接触のみ
+} as const;
+
+export type ConnectionType = typeof ConnectionType[keyof typeof ConnectionType];
 
 // 3D座標
 export interface Vector3 {
@@ -77,9 +81,35 @@ export interface ContactInfo {
   contactType: 'face-to-face' | 'edge-to-edge';
 }
 
+// 面の種類
+export const FaceType = {
+  FACE: 'face',   // 面（広い面：89mm側）
+  EDGE: 'edge',   // 木端（狭い面：38mm/19mm側）
+  END: 'end',     // 木口（端面）
+} as const;
+
+export type FaceType = typeof FaceType[keyof typeof FaceType];
+
+// 辺情報
+export interface EdgeInfo {
+  start: Vector3;
+  end: Vector3;
+  length: number;
+  direction: Vector3;
+}
+
 // 面（接触判定用）
 export interface Face {
   center: Vector3;
   normal: Vector3;
   vertices: Vector3[];
+  // Lumberのローカル座標系（断面の向きを合わせるため）
+  widthDir?: Vector3;
+  heightDir?: Vector3;
+  // 面の種類
+  faceType: FaceType;
+  // 面の辺情報
+  edges: EdgeInfo[];
+  // 木口面の場合、対応する辺の種類（width/height）を識別するため
+  edgeLengths?: { width: number; height: number };
 }

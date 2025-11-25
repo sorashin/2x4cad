@@ -11,7 +11,7 @@ import type { Vector3, Quaternion } from '../../types/lumber';
 
 interface LumberTransformControlsProps {
   lumberId: string;
-  meshRef: React.RefObject<Mesh>;
+  meshRef: React.RefObject<Mesh | null>;
 }
 
 export function LumberTransformControls({ lumberId, meshRef }: LumberTransformControlsProps) {

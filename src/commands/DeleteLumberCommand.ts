@@ -46,7 +46,7 @@ export class DeleteLumberCommand extends CommandBase {
     const store = useLumberStore.getState();
     
     // Restore all deleted lumbers
-    for (const [id, lumber] of this.lumberDataMap.entries()) {
+    for (const [, lumber] of this.lumberDataMap.entries()) {
       store.restoreLumber(lumber);
     }
   }

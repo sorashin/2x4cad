@@ -3,11 +3,19 @@ import { useLumberStore } from '../stores/lumber';
 import type { HistoryBase } from './HistoryBase';
 
 export class UpdateLumberHistory implements HistoryBase {
+  private lumberId: string;
+  private prevState: Partial<Lumber>;
+  private nextState: Partial<Lumber>;
+
   constructor(
-    private lumberId: string,
-    private prevState: Partial<Lumber>,
-    private nextState: Partial<Lumber>
-  ) {}
+    lumberId: string,
+    prevState: Partial<Lumber>,
+    nextState: Partial<Lumber>
+  ) {
+    this.lumberId = lumberId;
+    this.prevState = prevState;
+    this.nextState = nextState;
+  }
 
   undo() {
     useLumberStore.getState().updateLumber(this.lumberId, this.prevState);

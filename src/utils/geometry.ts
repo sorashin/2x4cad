@@ -1,5 +1,5 @@
 import type { Vector3, Lumber, Face, Quaternion } from '../types/lumber';
-import { LUMBER_DIMENSIONS } from '../types/lumber';
+import { LUMBER_DIMENSIONS, FaceType } from '../types/lumber';
 
 // グリッドスナップ
 export function snapToGrid(position: Vector3, gridSize: number): Vector3 {
@@ -232,27 +232,17 @@ export function getLumberFaces(lumber: Lumber): Face[] {
   const endPoint = getLumberEndPoint(lumber);
   
   // 木材のローカル座標系を構築
-  // direction = Y軸方向（木材の長さ方向）
-  // 横方向と高さ方向を計算
+  // ローカル座標系:
+  // - X軸 = width方向（38mm）
+  // - Y軸 = length方向（長手）
+  // - Z軸 = height方向（89mm）
   
-  // GridSnap前提で、directionは軸方向のみ
-  // direction に垂直な2つの軸を取得
-  let widthDir: Vector3;
-  let heightDir: Vector3;
+  // quaternionを使用してローカル座標系をワールド座標系に変換
+  const localWidthDir: Vector3 = { x: 1, y: 0, z: 0 };
+  const localHeightDir: Vector3 = { x: 0, y: 0, z: 1 };
   
-  if (Math.abs(direction.y) > 0.9) {
-    // Y軸方向の木材
-    widthDir = { x: 1, y: 0, z: 0 };
-    heightDir = { x: 0, y: 0, z: 1 };
-  } else if (Math.abs(direction.x) > 0.9) {
-    // X軸方向の木材
-    widthDir = { x: 0, y: 1, z: 0 };
-    heightDir = { x: 0, y: 0, z: 1 };
-  } else {
-    // Z軸方向の木材
-    widthDir = { x: 1, y: 0, z: 0 };
-    heightDir = { x: 0, y: 1, z: 0 };
-  }
+  const widthDir = applyQuaternion(localWidthDir, lumber.rotation);
+  const heightDir = applyQuaternion(localHeightDir, lumber.rotation);
   
   const halfWidth = dimensions.width / 2;
   const halfHeight = dimensions.height / 2;
@@ -261,81 +251,137 @@ export function getLumberFaces(lumber: Lumber): Face[] {
   
   // 始点側の小口面（StartFace）
   const startFaceNormal = scale(direction, -1);
+  const startV0 = add(lumber.position, add(scale(widthDir, -halfWidth), scale(heightDir, -halfHeight)));
+  const startV1 = add(lumber.position, add(scale(widthDir, halfWidth), scale(heightDir, -halfHeight)));
+  const startV2 = add(lumber.position, add(scale(widthDir, halfWidth), scale(heightDir, halfHeight)));
+  const startV3 = add(lumber.position, add(scale(widthDir, -halfWidth), scale(heightDir, halfHeight)));
+  
   faces.push({
     center: lumber.position,
     normal: startFaceNormal,
-    vertices: [
-      add(lumber.position, add(scale(widthDir, -halfWidth), scale(heightDir, -halfHeight))),
-      add(lumber.position, add(scale(widthDir, halfWidth), scale(heightDir, -halfHeight))),
-      add(lumber.position, add(scale(widthDir, halfWidth), scale(heightDir, halfHeight))),
-      add(lumber.position, add(scale(widthDir, -halfWidth), scale(heightDir, halfHeight))),
+    vertices: [startV0, startV1, startV2, startV3],
+    widthDir,
+    heightDir,
+    faceType: FaceType.END,
+    edges: [
+      { start: startV0, end: startV1, length: dimensions.width, direction: widthDir },
+      { start: startV1, end: startV2, length: dimensions.height, direction: heightDir },
+      { start: startV2, end: startV3, length: dimensions.width, direction: scale(widthDir, -1) },
+      { start: startV3, end: startV0, length: dimensions.height, direction: scale(heightDir, -1) },
     ],
+    edgeLengths: { width: dimensions.width, height: dimensions.height },
   });
   
   // 終点側の小口面（EndFace）
+  const endV0 = add(endPoint, add(scale(widthDir, -halfWidth), scale(heightDir, -halfHeight)));
+  const endV1 = add(endPoint, add(scale(widthDir, halfWidth), scale(heightDir, -halfHeight)));
+  const endV2 = add(endPoint, add(scale(widthDir, halfWidth), scale(heightDir, halfHeight)));
+  const endV3 = add(endPoint, add(scale(widthDir, -halfWidth), scale(heightDir, halfHeight)));
+  
   faces.push({
     center: endPoint,
     normal: direction,
-    vertices: [
-      add(endPoint, add(scale(widthDir, -halfWidth), scale(heightDir, -halfHeight))),
-      add(endPoint, add(scale(widthDir, halfWidth), scale(heightDir, -halfHeight))),
-      add(endPoint, add(scale(widthDir, halfWidth), scale(heightDir, halfHeight))),
-      add(endPoint, add(scale(widthDir, -halfWidth), scale(heightDir, halfHeight))),
+    vertices: [endV0, endV1, endV2, endV3],
+    widthDir,
+    heightDir,
+    faceType: FaceType.END,
+    edges: [
+      { start: endV0, end: endV1, length: dimensions.width, direction: widthDir },
+      { start: endV1, end: endV2, length: dimensions.height, direction: heightDir },
+      { start: endV2, end: endV3, length: dimensions.width, direction: scale(widthDir, -1) },
+      { start: endV3, end: endV0, length: dimensions.height, direction: scale(heightDir, -1) },
     ],
+    edgeLengths: { width: dimensions.width, height: dimensions.height },
   });
   
   // 中心点（木材の中央）
   const centerPoint = midpoint(lumber.position, endPoint);
   
-  // 側面1（+width方向）
+  // 側面1（+width方向）- 木端（EDGE）
   const side1Center = add(centerPoint, scale(widthDir, halfWidth));
+  const side1V0 = add(lumber.position, add(scale(widthDir, halfWidth), scale(heightDir, -halfHeight)));
+  const side1V1 = add(endPoint, add(scale(widthDir, halfWidth), scale(heightDir, -halfHeight)));
+  const side1V2 = add(endPoint, add(scale(widthDir, halfWidth), scale(heightDir, halfHeight)));
+  const side1V3 = add(lumber.position, add(scale(widthDir, halfWidth), scale(heightDir, halfHeight)));
+  
   faces.push({
     center: side1Center,
     normal: widthDir,
-    vertices: [
-      add(lumber.position, add(scale(widthDir, halfWidth), scale(heightDir, -halfHeight))),
-      add(endPoint, add(scale(widthDir, halfWidth), scale(heightDir, -halfHeight))),
-      add(endPoint, add(scale(widthDir, halfWidth), scale(heightDir, halfHeight))),
-      add(lumber.position, add(scale(widthDir, halfWidth), scale(heightDir, halfHeight))),
+    vertices: [side1V0, side1V1, side1V2, side1V3],
+    widthDir: direction,  // 側面の場合、長さ方向がwidthになる
+    heightDir,
+    faceType: FaceType.EDGE,
+    edges: [
+      { start: side1V0, end: side1V1, length: lumber.length, direction: direction },
+      { start: side1V1, end: side1V2, length: dimensions.height, direction: heightDir },
+      { start: side1V2, end: side1V3, length: lumber.length, direction: scale(direction, -1) },
+      { start: side1V3, end: side1V0, length: dimensions.height, direction: scale(heightDir, -1) },
     ],
   });
   
-  // 側面2（-width方向）
+  // 側面2（-width方向）- 木端（EDGE）
   const side2Center = add(centerPoint, scale(widthDir, -halfWidth));
+  const side2V0 = add(lumber.position, add(scale(widthDir, -halfWidth), scale(heightDir, -halfHeight)));
+  const side2V1 = add(endPoint, add(scale(widthDir, -halfWidth), scale(heightDir, -halfHeight)));
+  const side2V2 = add(endPoint, add(scale(widthDir, -halfWidth), scale(heightDir, halfHeight)));
+  const side2V3 = add(lumber.position, add(scale(widthDir, -halfWidth), scale(heightDir, halfHeight)));
+  
   faces.push({
     center: side2Center,
     normal: scale(widthDir, -1),
-    vertices: [
-      add(lumber.position, add(scale(widthDir, -halfWidth), scale(heightDir, -halfHeight))),
-      add(endPoint, add(scale(widthDir, -halfWidth), scale(heightDir, -halfHeight))),
-      add(endPoint, add(scale(widthDir, -halfWidth), scale(heightDir, halfHeight))),
-      add(lumber.position, add(scale(widthDir, -halfWidth), scale(heightDir, halfHeight))),
+    vertices: [side2V0, side2V1, side2V2, side2V3],
+    widthDir: direction,  // 側面の場合、長さ方向がwidthになる
+    heightDir,
+    faceType: FaceType.EDGE,
+    edges: [
+      { start: side2V0, end: side2V1, length: lumber.length, direction: direction },
+      { start: side2V1, end: side2V2, length: dimensions.height, direction: heightDir },
+      { start: side2V2, end: side2V3, length: lumber.length, direction: scale(direction, -1) },
+      { start: side2V3, end: side2V0, length: dimensions.height, direction: scale(heightDir, -1) },
     ],
   });
   
-  // 側面3（+height方向）
+  // 側面3（+height方向）- 面（FACE）
   const side3Center = add(centerPoint, scale(heightDir, halfHeight));
+  const side3V0 = add(lumber.position, add(scale(widthDir, -halfWidth), scale(heightDir, halfHeight)));
+  const side3V1 = add(endPoint, add(scale(widthDir, -halfWidth), scale(heightDir, halfHeight)));
+  const side3V2 = add(endPoint, add(scale(widthDir, halfWidth), scale(heightDir, halfHeight)));
+  const side3V3 = add(lumber.position, add(scale(widthDir, halfWidth), scale(heightDir, halfHeight)));
+  
   faces.push({
     center: side3Center,
     normal: heightDir,
-    vertices: [
-      add(lumber.position, add(scale(widthDir, -halfWidth), scale(heightDir, halfHeight))),
-      add(endPoint, add(scale(widthDir, -halfWidth), scale(heightDir, halfHeight))),
-      add(endPoint, add(scale(widthDir, halfWidth), scale(heightDir, halfHeight))),
-      add(lumber.position, add(scale(widthDir, halfWidth), scale(heightDir, halfHeight))),
+    vertices: [side3V0, side3V1, side3V2, side3V3],
+    widthDir: direction,  // 側面の場合、長さ方向がwidthDirになる
+    heightDir: widthDir,  // 短手方向（ローカルのwidthDir）
+    faceType: FaceType.FACE,
+    edges: [
+      { start: side3V0, end: side3V1, length: lumber.length, direction: direction },
+      { start: side3V1, end: side3V2, length: dimensions.width, direction: widthDir },
+      { start: side3V2, end: side3V3, length: lumber.length, direction: scale(direction, -1) },
+      { start: side3V3, end: side3V0, length: dimensions.width, direction: scale(widthDir, -1) },
     ],
   });
   
-  // 側面4（-height方向）
+  // 側面4（-height方向）- 面（FACE）
   const side4Center = add(centerPoint, scale(heightDir, -halfHeight));
+  const side4V0 = add(lumber.position, add(scale(widthDir, -halfWidth), scale(heightDir, -halfHeight)));
+  const side4V1 = add(endPoint, add(scale(widthDir, -halfWidth), scale(heightDir, -halfHeight)));
+  const side4V2 = add(endPoint, add(scale(widthDir, halfWidth), scale(heightDir, -halfHeight)));
+  const side4V3 = add(lumber.position, add(scale(widthDir, halfWidth), scale(heightDir, -halfHeight)));
+  
   faces.push({
     center: side4Center,
     normal: scale(heightDir, -1),
-    vertices: [
-      add(lumber.position, add(scale(widthDir, -halfWidth), scale(heightDir, -halfHeight))),
-      add(endPoint, add(scale(widthDir, -halfWidth), scale(heightDir, -halfHeight))),
-      add(endPoint, add(scale(widthDir, halfWidth), scale(heightDir, -halfHeight))),
-      add(lumber.position, add(scale(widthDir, halfWidth), scale(heightDir, -halfHeight))),
+    vertices: [side4V0, side4V1, side4V2, side4V3],
+    widthDir: direction,  // 側面の場合、長さ方向がwidthDirになる
+    heightDir: widthDir,  // 短手方向（ローカルのwidthDir）
+    faceType: FaceType.FACE,
+    edges: [
+      { start: side4V0, end: side4V1, length: lumber.length, direction: direction },
+      { start: side4V1, end: side4V2, length: dimensions.width, direction: widthDir },
+      { start: side4V2, end: side4V3, length: lumber.length, direction: scale(direction, -1) },
+      { start: side4V3, end: side4V0, length: dimensions.width, direction: scale(widthDir, -1) },
     ],
   });
   
@@ -417,4 +463,236 @@ export function snapToFace(
   }
   
   return result;
+}
+
+// 面の頂点から指定位置に最も近い頂点を検索
+export function findClosestVertex(
+  position: Vector3,
+  face: Face,
+  threshold: number
+): Vector3 | null {
+  let closest: Vector3 | null = null;
+  let minDistance = threshold;
+  
+  for (const vertex of face.vertices) {
+    const dist = distance(position, vertex);
+    if (dist < minDistance) {
+      minDistance = dist;
+      closest = vertex;
+    }
+  }
+  
+  return closest;
+}
+
+// 法線方向とupベクトルから回転（クォータニオン）を計算
+// 新しいLumberのY軸がnormal方向、X軸（幅方向）がup方向に一致するようにする
+export function calculateRotationFromNormalAndUp(
+  normal: Vector3,
+  up: Vector3
+): Quaternion {
+  // 正規化
+  const n = normalize(normal);
+  const u = normalize(up);
+  
+  // Lumberのローカル座標系:
+  // X軸 = 幅方向 (width)
+  // Y軸 = 長さ方向 (length/direction) = normal
+  // Z軸 = 高さ方向 (height)
+  
+  // Z軸方向を計算（normalとupに直交）
+  const z = normalize(cross(u, n));
+  
+  // X軸を再計算（直交性を保証）
+  const x = normalize(cross(n, z));
+  
+  // 回転行列からクォータニオンを計算
+  // 行列の列ベクトル: [x, n, z]
+  // これは、ローカル座標系 (1,0,0), (0,1,0), (0,0,1) を
+  // ワールド座標系 (x, n, z) に変換する回転
+  
+  // クォータニオンの計算（回転行列から）
+  const trace = x.x + n.y + z.z;
+  let qw: number, qx: number, qy: number, qz: number;
+  
+  if (trace > 0) {
+    const s = Math.sqrt(trace + 1.0) * 2; // s = 4 * qw
+    qw = 0.25 * s;
+    qx = (z.y - n.z) / s;
+    qy = (x.z - z.x) / s;
+    qz = (n.x - x.y) / s;
+  } else if (x.x > n.y && x.x > z.z) {
+    const s = Math.sqrt(1.0 + x.x - n.y - z.z) * 2; // s = 4 * qx
+    qw = (z.y - n.z) / s;
+    qx = 0.25 * s;
+    qy = (x.y + n.x) / s;
+    qz = (x.z + z.x) / s;
+  } else if (n.y > z.z) {
+    const s = Math.sqrt(1.0 + n.y - x.x - z.z) * 2; // s = 4 * qy
+    qw = (x.z - z.x) / s;
+    qx = (x.y + n.x) / s;
+    qy = 0.25 * s;
+    qz = (n.z + z.y) / s;
+  } else {
+    const s = Math.sqrt(1.0 + z.z - x.x - n.y) * 2; // s = 4 * qz
+    qw = (n.x - x.y) / s;
+    qx = (x.z + z.x) / s;
+    qy = (n.z + z.y) / s;
+    qz = 0.25 * s;
+  }
+  
+  // 正規化
+  const len = Math.sqrt(qw * qw + qx * qx + qy * qy + qz * qz);
+  if (len > 0.0001) {
+    return {
+      x: qx / len,
+      y: qy / len,
+      z: qz / len,
+      w: qw / len,
+    };
+  }
+  
+  // デフォルト（単位クォータニオン）
+  return { x: 0, y: 0, z: 0, w: 1 };
+}
+
+// 面のローカル座標系からupベクトルを計算（断面の中心線を合わせるため）
+// 既存Lumberの断面の向き（widthDirまたはheightDir）を使用
+export function getFaceUpVector(face: Face): Vector3 {
+  // 面にwidthDirが定義されている場合はそれを使用
+  // これにより、既存Lumberの断面の向きと新しいLumberの断面の向きが一致する
+  if (face.widthDir) {
+    return normalize(face.widthDir);
+  }
+  
+  // フォールバック: デフォルトの上方向
+  return { x: 0, y: 0, z: 1 };
+}
+
+// 面の中心線上の最も近い点を計算
+// 面の中心を通り、法線に垂直な直線（中心線）上で、指定位置に最も近い点を返す
+export function snapToFaceCenterLine(position: Vector3, face: Face): Vector3 {
+  // 面の中心線は、面の中心を通り法線に垂直な直線
+  // widthDirまたはheightDirが定義されている場合、それらの方向の中心線を使用
+  
+  if (!face.widthDir && !face.heightDir) {
+    // 中心線情報がない場合は面の中心を返す
+    return face.center;
+  }
+  
+  // 面の中心から位置へのベクトル
+  const toPosition = subtract(position, face.center);
+  
+  // widthDir方向の成分を抽出（これが中心線方向）
+  let centerLineDir: Vector3;
+  if (face.widthDir) {
+    centerLineDir = normalize(face.widthDir);
+  } else if (face.heightDir) {
+    centerLineDir = normalize(face.heightDir);
+  } else {
+    return face.center;
+  }
+  
+  // 中心線方向への射影
+  const projection = dot(toPosition, centerLineDir);
+  
+  // 中心線上の最も近い点
+  return add(face.center, scale(centerLineDir, projection));
+}
+
+// previewLumberの木口面と既存Lumberの面の辺が位置的に一致するか判定
+// previewLumberを90度回転させた時に辺が同一直線上に重なるかをチェック
+export function shouldRotate90Degrees(
+  _previewLumberType: { width: number; height: number },
+  targetFace: Face,
+  _startPosition: Vector3,
+  baseRotation: Quaternion
+): boolean {
+  // targetFaceの辺がない場合は判定不可
+  if (!targetFace.edges || targetFace.edges.length < 4) return false;
+  
+  // previewLumberの木口面をstartPositionに配置した時の辺を計算
+  // baseRotationは法線方向を合わせた基本回転
+  
+  // ローカル座標系でのpreviewLumberの木口面の4辺
+  // width方向（X軸）とheight方向（Z軸）
+  // const halfWidth = previewLumberType.width / 2;
+  // const halfHeight = previewLumberType.height / 2;
+  
+  // 回転なしの場合のwidthDir, heightDir
+  const widthDir = applyQuaternion({ x: 1, y: 0, z: 0 }, baseRotation);
+  const heightDir = applyQuaternion({ x: 0, y: 0, z: 1 }, baseRotation);
+  
+  // 回転なしの場合の辺の方向
+  const edgeDirs = [widthDir, heightDir];
+  
+  // 90度回転した場合のwidthDir, heightDir
+  const faceNormal = applyQuaternion({ x: 0, y: 1, z: 0 }, baseRotation);
+  const rotated90Rotation = rotateQuaternionAroundAxis(baseRotation, normalize(faceNormal));
+  const widthDirRotated = applyQuaternion({ x: 1, y: 0, z: 0 }, rotated90Rotation);
+  const heightDirRotated = applyQuaternion({ x: 0, y: 0, z: 1 }, rotated90Rotation);
+  
+  // 90度回転した場合の辺の方向
+  const edgeDirsRotated = [widthDirRotated, heightDirRotated];
+  
+  // targetFaceの辺の方向を取得
+  const targetEdgeDirs = targetFace.edges.map(e => normalize(e.direction));
+  
+  // 辺の方向が一致するかをチェック（回転なし vs 90度回転）
+  let matchCountWithoutRotation = 0;
+  let matchCountWithRotation = 0;
+  
+  for (const targetEdgeDir of targetEdgeDirs) {
+    // 回転なしの場合
+    for (const edgeDir of edgeDirs) {
+      if (Math.abs(dot(targetEdgeDir, edgeDir)) > 0.99) {
+        matchCountWithoutRotation++;
+        break;
+      }
+    }
+    
+    // 90度回転した場合
+    for (const edgeDirRot of edgeDirsRotated) {
+      if (Math.abs(dot(targetEdgeDir, edgeDirRot)) > 0.99) {
+        matchCountWithRotation++;
+        break;
+      }
+    }
+  }
+  
+  // 90度回転した場合の方が多くの辺が一致する場合は回転を適用
+  // ただし、回転なしでも同程度一致する場合は回転しない
+  return matchCountWithRotation > matchCountWithoutRotation;
+}
+
+// クォータニオンを軸周りに90度回転させる
+// axis: 回転軸（正規化されたベクトル）
+export function rotateQuaternionAroundAxis(
+  q: Quaternion,
+  axis: Vector3
+): Quaternion {
+  // 90度（π/2 rad）の回転クォータニオンを作成
+  const angle = Math.PI / 2;
+  const halfAngle = angle / 2;
+  const sinHalf = Math.sin(halfAngle);
+  
+  const rotQuat: Quaternion = {
+    x: axis.x * sinHalf,
+    y: axis.y * sinHalf,
+    z: axis.z * sinHalf,
+    w: Math.cos(halfAngle),
+  };
+  
+  // クォータニオンの合成: rotQuat * q
+  return multiplyQuaternions(rotQuat, q);
+}
+
+// クォータニオンの乗算
+function multiplyQuaternions(a: Quaternion, b: Quaternion): Quaternion {
+  return {
+    x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+    y: a.w * b.y + a.y * b.w + a.z * b.x - a.x * b.z,
+    z: a.w * b.z + a.z * b.w + a.x * b.y - a.y * b.x,
+    w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+  };
 }

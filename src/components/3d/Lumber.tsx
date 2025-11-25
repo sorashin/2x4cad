@@ -208,6 +208,7 @@ export function Lumber({ lumber }: LumberProps) {
         position={centerPosition}
         quaternion={quaternion}
         onClick={handleClick}
+        userData={{ lumberId: lumber.id }}
       >
         <boxGeometry
           args={[
