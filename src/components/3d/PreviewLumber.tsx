@@ -18,16 +18,20 @@ interface PreviewLumberProps {
  */
 export function PreviewLumber({ start, end }: PreviewLumberProps) {
   const selectedLumberType = useInteractionStore((s) => s.selectedLumberType);
+  const activeSnapFace = useInteractionStore((s) => s.activeSnapFace);
   const dimensions = LUMBER_DIMENSIONS[selectedLumberType];
   const snapToGridEnabled = useSettingsStore((s) => s.snapToGrid);
   const gridSize = useSettingsStore((s) => s.gridSize);
 
-  // 常にグリッド交点にスナップ
-  let snappedStart = snapToGridEnabled ? snapToGrid(start, gridSize) : start;
-  let snappedEnd = snapToGridEnabled ? snapToGrid(end, gridSize) : end;
-
-  // Snap end point to closest axis
-  snappedEnd = snapToAxis(snappedStart, snappedEnd);
+  // 始点は常にグリッド交点にスナップ
+  const snappedStart = snapToGridEnabled ? snapToGrid(start, gridSize) : start;
+  
+  // 終点は面スナップが適用されている場合はそのまま使用、そうでなければグリッドスナップを適用
+  // （InteractionHandler で既に面スナップまたはグリッドスナップが適用されている）
+  let snappedEnd = end;
+  
+  // 軸スナップを適用（面スナップされていない軸に対してのみ）
+  snappedEnd = snapToAxisWithFaceSnap(snappedStart, snappedEnd, activeSnapFace?.axis);
 
   // Calculate direction and length
   const dx = snappedEnd.x - snappedStart.x;
@@ -122,6 +126,30 @@ export function PreviewLumber({ start, end }: PreviewLumberProps) {
           {`始点: (${snappedStart.x}, ${snappedStart.y}, ${snappedStart.z})`}
         </Text>
       </Billboard>
+      {/* 終点座標を表示（面スナップ時はハイライト） */}
+      <Billboard 
+        position={new ThreeVector3(
+          mmToUnits(snappedEnd.x),
+          mmToUnits(snappedEnd.y),
+          mmToUnits(snappedEnd.z)
+        )} 
+        follow={true} 
+        lockX={false} 
+        lockY={false} 
+        lockZ={false}
+      >
+        <Text
+          fontSize={0.35}
+          color={activeSnapFace ? '#00FF00' : '#FFFF00'}
+          anchorX="left"
+          anchorY="bottom"
+          outlineWidth={0.03}
+          outlineColor="#000000"
+          position={[0.2, 0.2, 0]}
+        >
+          {`終点: (${snappedEnd.x}, ${snappedEnd.y}, ${snappedEnd.z})${activeSnapFace ? ' [面スナップ]' : ''}`}
+        </Text>
+      </Billboard>
     </group>
   );
 }
@@ -208,17 +236,45 @@ export function DefaultPreviewLumber({ position }: { position: Vector3 }) {
 
 // Helper functions
 
-function snapToAxis(start: Vector3, end: Vector3): Vector3 {
+/**
+ * 終点を最も近い軸にスナップする
+ * 面スナップが適用されている場合は、その軸の値を保持する
+ */
+function snapToAxisWithFaceSnap(
+  start: Vector3, 
+  end: Vector3, 
+  faceSnapAxis: 'x' | 'y' | 'z' | undefined
+): Vector3 {
   const dx = Math.abs(end.x - start.x);
   const dy = Math.abs(end.y - start.y);
   const dz = Math.abs(end.z - start.z);
-
-  if (dx >= dy && dx >= dz) {
-    return { x: end.x, y: start.y, z: start.z };
-  } else if (dy >= dx && dy >= dz) {
-    return { x: start.x, y: end.y, z: start.z };
+  
+  // 面スナップが適用されている軸を判定
+  // 面スナップ軸は PreviewLumber の伸びる方向を決める
+  let primaryAxis: 'x' | 'y' | 'z';
+  
+  if (faceSnapAxis) {
+    // 面スナップが適用されている場合、その軸方向に伸ばす
+    primaryAxis = faceSnapAxis;
   } else {
-    return { x: start.x, y: start.y, z: end.z };
+    // 面スナップがない場合、最も差が大きい軸を選択
+    if (dx >= dy && dx >= dz) {
+      primaryAxis = 'x';
+    } else if (dy >= dx && dy >= dz) {
+      primaryAxis = 'y';
+    } else {
+      primaryAxis = 'z';
+    }
+  }
+  
+  // 選択された軸方向にのみ伸ばす
+  switch (primaryAxis) {
+    case 'x':
+      return { x: end.x, y: start.y, z: start.z };
+    case 'y':
+      return { x: start.x, y: end.y, z: start.z };
+    case 'z':
+      return { x: start.x, y: start.y, z: end.z };
   }
 }
 

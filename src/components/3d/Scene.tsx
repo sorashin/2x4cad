@@ -1,15 +1,24 @@
-import { useRef, useCallback, useEffect, useState } from 'react';
+import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
 import { Raycaster, Plane, Vector3 as ThreeVector3, Vector2, Ray, MOUSE } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three/examples/jsm/controls/OrbitControls';
 import { useLumberStore } from '../../stores/lumber';
 import { useSettingsStore } from '../../stores/settings';
+import { useInteractionStore } from '../../stores/interaction';
 import { Lumber } from './Lumber';
 import { PreviewLumber, DefaultPreviewLumber } from './PreviewLumber';
+import { HighlightedFace } from './HighlightedFace';
 import { useUIMode } from '../../hooks/useUIMode';
 import { unitsToMm, mmToUnits } from '../../constants';
-import { snapToGrid } from '../../utils/geometry';
+import { 
+  snapToGrid, 
+  findParallelFaces, 
+  findClosestParallelFace, 
+  snapToFace,
+  normalize,
+  subtract,
+} from '../../utils/geometry';
 
 // Calculate closest points between a ray and a line segment
 // Returns [pointOnRay, pointOnLine, distance]
@@ -191,8 +200,18 @@ function InteractionHandler() {
   const workAreaSize = useSettingsStore((s) => s.workAreaSize);
   const snapToGridEnabled = useSettingsStore((s) => s.snapToGrid);
   const gridSize = useSettingsStore((s) => s.gridSize);
+  const { lumbers } = useLumberStore();
+  const { 
+    parallelFaces, 
+    activeSnapFace,
+    setParallelFaces, 
+    setActiveSnapFace 
+  } = useInteractionStore();
 
   const raycaster = useRef(new Raycaster());
+  
+  // 面スナップの閾値（グリッドサイズの1.5倍）
+  const faceSnapThreshold = gridSize * 1.5;
 
   // Helper to clamp position within work area
   const clampToWorkArea = (positionMm: { x: number; y: number; z: number }) => {
@@ -203,6 +222,41 @@ function InteractionHandler() {
       z: Math.max(-halfSize, Math.min(halfSize, positionMm.z)),
     };
   };
+
+  // PreviewLumberの終点方向（EndFace）の法線を計算
+  const endFaceNormal = useMemo(() => {
+    if (currentMode !== 'lumber_placing_end' || !startPoint || !currentMousePosition) {
+      return null;
+    }
+    
+    // 始点から終点への方向ベクトルを計算
+    const direction = subtract(currentMousePosition, startPoint);
+    const normalizedDir = normalize(direction);
+    
+    // GridSnap前提で軸方向にスナップ
+    const absX = Math.abs(normalizedDir.x);
+    const absY = Math.abs(normalizedDir.y);
+    const absZ = Math.abs(normalizedDir.z);
+    
+    if (absX >= absY && absX >= absZ) {
+      return { x: normalizedDir.x > 0 ? 1 : -1, y: 0, z: 0 };
+    } else if (absY >= absX && absY >= absZ) {
+      return { x: 0, y: normalizedDir.y > 0 ? 1 : -1, z: 0 };
+    } else {
+      return { x: 0, y: 0, z: normalizedDir.z > 0 ? 1 : -1 };
+    }
+  }, [currentMode, startPoint, currentMousePosition]);
+  
+  // 平行面を検出して更新
+  useEffect(() => {
+    if (currentMode === 'lumber_placing_end' && endFaceNormal && Object.keys(lumbers).length > 0) {
+      const faces = findParallelFaces(endFaceNormal, lumbers);
+      setParallelFaces(faces);
+    } else {
+      setParallelFaces([]);
+      setActiveSnapFace(null);
+    }
+  }, [currentMode, endFaceNormal, lumbers, setParallelFaces, setActiveSnapFace]);
 
   // Update mouse position on every frame
   useFrame(({ pointer }) => {
@@ -226,6 +280,18 @@ function InteractionHandler() {
       // 常にグリッド交点にスナップ
       if (snapToGridEnabled) {
         positionMm = snapToGrid(positionMm, gridSize);
+      }
+      
+      // 終点選択モード時に面スナップを適用（グリッドスナップより優先）
+      if (currentMode === 'lumber_placing_end' && parallelFaces.length > 0) {
+        const closestFace = findClosestParallelFace(positionMm, parallelFaces, faceSnapThreshold);
+        
+        if (closestFace) {
+          positionMm = snapToFace(positionMm, closestFace);
+          setActiveSnapFace(closestFace);
+        } else {
+          setActiveSnapFace(null);
+        }
       }
       
       setCurrentMousePosition(positionMm);
@@ -261,13 +327,22 @@ function InteractionHandler() {
         positionMm = snapToGrid(positionMm, gridSize);
       }
 
+      // 終点選択モード時に面スナップを適用（グリッドスナップより優先）
+      if (currentMode === 'lumber_placing_end' && parallelFaces.length > 0) {
+        const closestFace = findClosestParallelFace(positionMm, parallelFaces, faceSnapThreshold);
+        
+        if (closestFace) {
+          positionMm = snapToFace(positionMm, closestFace);
+        }
+      }
+
       if (currentMode === 'lumber_placing_start') {
         placeStartPoint(positionMm);
       } else if (currentMode === 'lumber_placing_end') {
         placeEndPoint(positionMm);
       }
     }
-  }, [currentMode, camera, gl, startPoint, placeStartPoint, placeEndPoint, clampToWorkArea, snapToGridEnabled, gridSize]);
+  }, [currentMode, camera, gl, startPoint, placeStartPoint, placeEndPoint, clampToWorkArea, snapToGridEnabled, gridSize, parallelFaces, faceSnapThreshold]);
 
   // Attach click handler to canvas
   useFrame(() => {
@@ -296,6 +371,23 @@ function InteractionHandler() {
       {currentMode === 'lumber_placing_end' && startPoint && currentMousePosition && (
         <PreviewLumber start={startPoint} end={currentMousePosition} />
       )}
+      
+      {/* 平行な面をハイライト表示 */}
+      {currentMode === 'lumber_placing_end' && parallelFaces.map((faceInfo, index) => {
+        // activeSnapFaceとfaceInfoを比較（オブジェクト参照ではなく内容で比較）
+        const isActive = activeSnapFace !== null &&
+          activeSnapFace.lumberId === faceInfo.lumberId &&
+          activeSnapFace.axis === faceInfo.axis &&
+          Math.abs(activeSnapFace.planePosition - faceInfo.planePosition) < 0.001;
+        
+        return (
+          <HighlightedFace 
+            key={`${faceInfo.lumberId}-${index}`}
+            face={faceInfo.face}
+            isActive={isActive}
+          />
+        );
+      })}
     </>
   );
 }
