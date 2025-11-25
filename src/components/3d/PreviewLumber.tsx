@@ -1,8 +1,11 @@
 import { Quaternion as ThreeQuaternion, Vector3 as ThreeVector3 } from 'three';
+import { Text, Billboard } from '@react-three/drei';
 import type { Vector3 } from '../../types/lumber';
 import { LUMBER_DIMENSIONS } from '../../types/lumber';
 import { mmToUnits } from '../../constants';
 import { useInteractionStore } from '../../stores/interaction';
+import { useSettingsStore } from '../../stores/settings';
+import { snapToGrid } from '../../utils/geometry';
 
 interface PreviewLumberProps {
   start: Vector3;
@@ -16,14 +19,20 @@ interface PreviewLumberProps {
 export function PreviewLumber({ start, end }: PreviewLumberProps) {
   const selectedLumberType = useInteractionStore((s) => s.selectedLumberType);
   const dimensions = LUMBER_DIMENSIONS[selectedLumberType];
+  const snapToGridEnabled = useSettingsStore((s) => s.snapToGrid);
+  const gridSize = useSettingsStore((s) => s.gridSize);
+
+  // 常にグリッド交点にスナップ
+  let snappedStart = snapToGridEnabled ? snapToGrid(start, gridSize) : start;
+  let snappedEnd = snapToGridEnabled ? snapToGrid(end, gridSize) : end;
 
   // Snap end point to closest axis
-  const snappedEnd = snapToAxis(start, end);
+  snappedEnd = snapToAxis(snappedStart, snappedEnd);
 
   // Calculate direction and length
-  const dx = snappedEnd.x - start.x;
-  const dy = snappedEnd.y - start.y;
-  const dz = snappedEnd.z - start.z;
+  const dx = snappedEnd.x - snappedStart.x;
+  const dy = snappedEnd.y - snappedStart.y;
+  const dz = snappedEnd.z - snappedStart.z;
   const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
   if (length < 1) {
@@ -42,9 +51,9 @@ export function PreviewLumber({ start, end }: PreviewLumberProps) {
 
   // Position at start point (mm → Three.js units)
   const position = new ThreeVector3(
-    mmToUnits(start.x),
-    mmToUnits(start.y),
-    mmToUnits(start.z)
+    mmToUnits(snappedStart.x),
+    mmToUnits(snappedStart.y),
+    mmToUnits(snappedStart.z)
   );
 
   // Offset to center
@@ -54,25 +63,66 @@ export function PreviewLumber({ start, end }: PreviewLumberProps) {
   const centerOffset = direction.multiplyScalar(mmToUnits(length) / 2);
   const centerPosition = position.clone().add(centerOffset);
 
+  // 始点の表示位置（グリッドスナップ済みなので整数値）
+  const startPosition = new ThreeVector3(
+    mmToUnits(snappedStart.x),
+    mmToUnits(snappedStart.y),
+    mmToUnits(snappedStart.z)
+  );
+
   return (
-    <mesh
-      position={centerPosition}
-      quaternion={new ThreeQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w)}
-    >
-      <boxGeometry
-        args={[
-          mmToUnits(dimensions.width),
-          mmToUnits(length),
-          mmToUnits(dimensions.height),
-        ]}
-      />
-      <meshStandardMaterial
-        color="#00BFFF"
-        transparent
-        opacity={0.6}
-        depthWrite={false}
-      />
-    </mesh>
+    <group>
+      <mesh
+        position={centerPosition}
+        quaternion={new ThreeQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w)}
+      >
+        <boxGeometry
+          args={[
+            mmToUnits(dimensions.width),
+            mmToUnits(length),
+            mmToUnits(dimensions.height),
+          ]}
+        />
+        <meshStandardMaterial
+          color="#00BFFF"
+          transparent
+          opacity={0.6}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* 始点をsphereで表示（デバッグ用） */}
+      <mesh position={startPosition}>
+        <sphereGeometry args={[0.15, 16, 16]} />
+        <meshStandardMaterial color="#FF0000" />
+      </mesh>
+      {/* 長さ表示テキスト */}
+      <Billboard position={centerPosition} follow={true} lockX={false} lockY={false} lockZ={false}>
+        <Text
+          fontSize={0.5}
+          color="#FFFFFF"
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.05}
+          outlineColor="#000000"
+        >
+          {Math.round(length)}mm
+        </Text>
+      </Billboard>
+      {/* 始点座標を表示 */}
+      <Billboard position={startPosition} follow={true} lockX={false} lockY={false} lockZ={false}>
+        <Text
+          fontSize={0.35}
+          color="#FFFF00"
+          anchorX="left"
+          anchorY="bottom"
+          outlineWidth={0.03}
+          outlineColor="#000000"
+          position={[0.2, 0.2, 0]}
+        >
+          {`始点: (${snappedStart.x}, ${snappedStart.y}, ${snappedStart.z})`}
+        </Text>
+      </Billboard>
+    </group>
   );
 }
 
@@ -83,32 +133,76 @@ export function PreviewLumber({ start, end }: PreviewLumberProps) {
 export function DefaultPreviewLumber({ position }: { position: Vector3 }) {
   const selectedLumberType = useInteractionStore((s) => s.selectedLumberType);
   const dimensions = LUMBER_DIMENSIONS[selectedLumberType];
+  const snapToGridEnabled = useSettingsStore((s) => s.snapToGrid);
+  const gridSize = useSettingsStore((s) => s.gridSize);
 
   const DEFAULT_LENGTH = 100; // 100mm default length
 
-  // Position in Three.js units
+  // 常にグリッド交点にスナップ
+  const snappedPosition = snapToGridEnabled ? snapToGrid(position, gridSize) : position;
+
+  // Position in Three.js units（グリッドスナップ済みなので整数値）
   const centerPosition = new ThreeVector3(
-    mmToUnits(position.x),
-    mmToUnits(position.y) + mmToUnits(DEFAULT_LENGTH) / 2,
-    mmToUnits(position.z)
+    mmToUnits(snappedPosition.x),
+    mmToUnits(snappedPosition.y) + mmToUnits(DEFAULT_LENGTH) / 2,
+    mmToUnits(snappedPosition.z)
+  );
+  
+  // 始点位置（小口面の中心）
+  const startPosition = new ThreeVector3(
+    mmToUnits(snappedPosition.x),
+    mmToUnits(snappedPosition.y),
+    mmToUnits(snappedPosition.z)
   );
 
   return (
-    <mesh position={centerPosition}>
-      <boxGeometry
-        args={[
-          mmToUnits(dimensions.width),
-          mmToUnits(DEFAULT_LENGTH),
-          mmToUnits(dimensions.height),
-        ]}
-      />
-      <meshStandardMaterial
-        color="#00BFFF"
-        transparent
-        opacity={0.4}
-        depthWrite={false}
-      />
-    </mesh>
+    <group>
+      <mesh position={centerPosition}>
+        <boxGeometry
+          args={[
+            mmToUnits(dimensions.width),
+            mmToUnits(DEFAULT_LENGTH),
+            mmToUnits(dimensions.height),
+          ]}
+        />
+        <meshStandardMaterial
+          color="#00BFFF"
+          transparent
+          opacity={0.4}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* 始点をsphereで表示（デバッグ用） */}
+      <mesh position={startPosition}>
+        <sphereGeometry args={[0.15, 16, 16]} />
+        <meshStandardMaterial color="#FF0000" />
+      </mesh>
+      {/* 始点座標とグリッドサイズを表示 */}
+      <Billboard position={startPosition} follow={true} lockX={false} lockY={false} lockZ={false}>
+        <Text
+          fontSize={0.4}
+          color="#FFFF00"
+          anchorX="left"
+          anchorY="bottom"
+          outlineWidth={0.04}
+          outlineColor="#000000"
+          position={[0.3, 0.1, 0]}
+        >
+          {`始点: (${snappedPosition.x}, ${snappedPosition.y}, ${snappedPosition.z})`}
+        </Text>
+        <Text
+          fontSize={0.3}
+          color="#00FF00"
+          anchorX="left"
+          anchorY="top"
+          outlineWidth={0.03}
+          outlineColor="#000000"
+          position={[0.3, -0.1, 0]}
+        >
+          {`Grid: ${gridSize}mm [G]で切替`}
+        </Text>
+      </Billboard>
+    </group>
   );
 }
 

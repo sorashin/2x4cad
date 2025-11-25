@@ -1,4 +1,4 @@
-import { Vector3 } from '../types/lumber';
+import type { Vector3 } from '../types/lumber';
 
 // グリッドスナップ
 export function snapToGrid(position: Vector3, gridSize: number): Vector3 {
@@ -7,6 +7,44 @@ export function snapToGrid(position: Vector3, gridSize: number): Vector3 {
     y: Math.round(position.y / gridSize) * gridSize,
     z: Math.round(position.z / gridSize) * gridSize,
   };
+}
+
+// 閾値を考慮したグリッドスナップ
+// 各軸ごとにグリッド位置からの距離が閾値以内の場合のみスナップする
+export function snapToGridWithThreshold(
+  position: Vector3,
+  gridSize: number,
+  threshold: number,
+  debug = false
+): Vector3 {
+  const snapped = snapToGrid(position, gridSize);
+  
+  // 各軸ごとに閾値を判定
+  const dx = Math.abs(position.x - snapped.x);
+  const dy = Math.abs(position.y - snapped.y);
+  const dz = Math.abs(position.z - snapped.z);
+  
+  const result: Vector3 = {
+    x: dx <= threshold ? snapped.x : position.x,
+    y: dy <= threshold ? snapped.y : position.y,
+    z: dz <= threshold ? snapped.z : position.z,
+  };
+  
+  if (debug) {
+    const dist = distance(position, snapped);
+    console.log('[GridSnap]', {
+      original: position,
+      snapped,
+      result,
+      distances: { x: dx.toFixed(2), y: dy.toFixed(2), z: dz.toFixed(2) },
+      totalDistance: dist.toFixed(2),
+      threshold,
+      applied: result.x !== position.x || result.y !== position.y || result.z !== position.z,
+      gridSize,
+    });
+  }
+  
+  return result;
 }
 
 // ベクトルの長さを計算

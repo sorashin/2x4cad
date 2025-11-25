@@ -9,6 +9,7 @@ import { Lumber } from './Lumber';
 import { PreviewLumber, DefaultPreviewLumber } from './PreviewLumber';
 import { useUIMode } from '../../hooks/useUIMode';
 import { unitsToMm, mmToUnits } from '../../constants';
+import { snapToGrid } from '../../utils/geometry';
 
 // Calculate closest points between a ray and a line segment
 // Returns [pointOnRay, pointOnLine, distance]
@@ -172,6 +173,7 @@ function RhinoControls() {
         RIGHT: MOUSE.ROTATE,
       }}
     />
+    
   );
 }
 
@@ -187,6 +189,8 @@ function InteractionHandler() {
     placeEndPoint,
   } = useUIMode();
   const workAreaSize = useSettingsStore((s) => s.workAreaSize);
+  const snapToGridEnabled = useSettingsStore((s) => s.snapToGrid);
+  const gridSize = useSettingsStore((s) => s.gridSize);
 
   const raycaster = useRef(new Raycaster());
 
@@ -213,11 +217,17 @@ function InteractionHandler() {
 
     if (intersection) {
       // Convert from Three.js units to mm and clamp to work area
-      const positionMm = clampToWorkArea({
+      let positionMm = clampToWorkArea({
         x: unitsToMm(intersection.x),
         y: unitsToMm(intersection.y),
         z: unitsToMm(intersection.z),
       });
+      
+      // 常にグリッド交点にスナップ
+      if (snapToGridEnabled) {
+        positionMm = snapToGrid(positionMm, gridSize);
+      }
+      
       setCurrentMousePosition(positionMm);
     }
   });
@@ -240,11 +250,16 @@ function InteractionHandler() {
     const intersection = getAxisIntersection(raycaster.current, useStartPoint);
 
     if (intersection) {
-      const positionMm = clampToWorkArea({
+      let positionMm = clampToWorkArea({
         x: unitsToMm(intersection.x),
         y: unitsToMm(intersection.y),
         z: unitsToMm(intersection.z),
       });
+
+      // 常にグリッド交点にスナップ
+      if (snapToGridEnabled) {
+        positionMm = snapToGrid(positionMm, gridSize);
+      }
 
       if (currentMode === 'lumber_placing_start') {
         placeStartPoint(positionMm);
@@ -252,7 +267,7 @@ function InteractionHandler() {
         placeEndPoint(positionMm);
       }
     }
-  }, [currentMode, camera, gl, startPoint, placeStartPoint, placeEndPoint, clampToWorkArea]);
+  }, [currentMode, camera, gl, startPoint, placeStartPoint, placeEndPoint, clampToWorkArea, snapToGridEnabled, gridSize]);
 
   // Attach click handler to canvas
   useFrame(() => {
@@ -289,6 +304,7 @@ export function Scene() {
   const { lumbers, deselectAll } = useLumberStore();
   const { currentMode, cancelAddLumber } = useUIMode();
   const workAreaSize = useSettingsStore((s) => s.workAreaSize);
+  const gridSize = useSettingsStore((s) => s.gridSize);
 
   // Convert work area size to Three.js units
   const workAreaUnits = mmToUnits(workAreaSize);
@@ -328,13 +344,13 @@ export function Scene() {
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <directionalLight position={[-10, -10, -5]} intensity={0.5} />
 
-        {/* グリッド (1単位 = 100mm = 10cm) */}
+        {/* グリッド - gridSizeに応じてセルサイズを変更 */}
         <Grid
           args={[workAreaUnits, workAreaUnits]}
-          cellSize={1}
+          cellSize={mmToUnits(gridSize)}
           cellThickness={1}
           cellColor="#6f6f6f"
-          sectionSize={10}
+          sectionSize={mmToUnits(gridSize)*10}
           sectionThickness={1.5}
           sectionColor="#9d4b4b"
           fadeDistance={workAreaUnits * 1.5}
