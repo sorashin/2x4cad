@@ -2,7 +2,6 @@ import { useRef, useMemo } from 'react';
 import { Mesh, Quaternion as ThreeQuaternion, Vector3 as ThreeVector3, Color, ShaderMaterial } from 'three';
 import type { ThreeEvent } from '@react-three/fiber';
 import { Edges } from '@react-three/drei';
-import { useControls } from 'leva';
 import type { Lumber as LumberType } from '../../types/lumber';
 import { LUMBER_DIMENSIONS } from '../../types/lumber';
 import { useLumberStore } from '../../stores/lumber';
@@ -19,26 +18,15 @@ export function Lumber({ lumber }: LumberProps) {
 
   const isSelected = selectedIds.has(lumber.id);
 
-  // Levaでシェーダーパラメータを調整
-  const {
-    lightGrainColor,
-    darkGrainColor,
-    ringDensity,
-    grainFrequency,
-    noiseStrength,
-    ringGrainMix,
-    noiseMix,
-    ringOffset,
-  } = useControls('Wood Material', {
-    lightGrainColor: '#eeb977',
-    darkGrainColor: '#8B4513',
-    ringDensity: { value: 20.0, min: 5.0, max: 50.0, step: 1.0 },
-    grainFrequency: { value: 8.0, min: 0.0, max: 100.0, step: 1.0 },
-    noiseStrength: { value: 0.0, min: 0.0, max: 20.0, step: 0.5 },
-    ringGrainMix: { value: 0.6, min: 0.0, max: 1.0, step: 0.1 },
-    noiseMix: { value: 0.3, min: 0.0, max: 1.0, step: 0.1 },
-    ringOffset: { value: 0.0, min: 0.0, max: 10.0, step: 0.1 },
-  });
+  // 木目シェーダーの固定パラメータ
+  const lightGrainColor = '#eeb977';
+  const darkGrainColor = '#8B4513';
+  const ringDensity = 20.0;
+  const grainFrequency = 8.0;
+  const noiseStrength = 0.0;
+  const ringGrainMix = 0.6;
+  const noiseMix = 0.3;
+  const ringOffset = 0.0;
 
   // 木目シェーダーマテリアルを作成
   // 参考: Blenderのプロシージャル木目テクスチャ
@@ -174,7 +162,7 @@ export function Lumber({ lumber }: LumberProps) {
     });
     
     return material;
-  }, [lumber.id, isSelected, lightGrainColor, darkGrainColor, ringDensity, grainFrequency, noiseStrength, ringGrainMix, noiseMix, ringOffset]);
+  }, [lumber.id, isSelected]);
 
   // 角材の寸法を取得
   const dimensions = LUMBER_DIMENSIONS[lumber.type];
