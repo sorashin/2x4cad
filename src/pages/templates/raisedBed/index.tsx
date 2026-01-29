@@ -43,11 +43,6 @@ export function RaisedBedPage() {
       >
         ← エディタに戻る
       </Link>
-
-      <div className="absolute left-1/2 transform -translate-x-1/2 top-4 bg-white/90 px-6 py-2 rounded-lg shadow-lg z-10">
-        <h1 className="text-xl font-bold">テンプレート: {templateName}</h1>
-      </div>
-
       <TemplatesCanvas />
       <TemplatePanel />
     </div>
