@@ -232,17 +232,25 @@ export function getLumberFaces(lumber: Lumber): Face[] {
   const endPoint = getLumberEndPoint(lumber);
   
   // 木材のローカル座標系を構築
-  // ローカル座標系:
-  // - X軸 = width方向（38mm）
-  // - Y軸 = length方向（長手）
-  // - Z軸 = height方向（89mm）
+  // widthDir: 木端面の法線方向（地面と平行で、directionと垂直）
+  // heightDir: 面の法線方向（widthDirとdirectionに垂直）
   
-  // quaternionを使用してローカル座標系をワールド座標系に変換
-  const localWidthDir: Vector3 = { x: 1, y: 0, z: 0 };
-  const localHeightDir: Vector3 = { x: 0, y: 0, z: 1 };
+  let widthDir: Vector3;
+  let heightDir: Vector3;
   
-  const widthDir = applyQuaternion(localWidthDir, lumber.rotation);
-  const heightDir = applyQuaternion(localHeightDir, lumber.rotation);
+  const upVector: Vector3 = { x: 0, y: 1, z: 0 };
+  
+  // directionが垂直（Y軸方向）かどうかをチェック
+  if (Math.abs(dot(direction, upVector)) > 0.99) {
+    // 垂直の場合、widthDirをX軸、heightDirをZ軸にする
+    widthDir = { x: 1, y: 0, z: 0 };
+    heightDir = { x: 0, y: 0, z: 1 };
+  } else {
+    // 水平または斜めの場合、地面と平行な方向をwidthDirとする
+    widthDir = normalize(cross(direction, upVector));
+    // heightDirはdirectionとwidthDirに垂直（上方向成分を持つ）
+    heightDir = normalize(cross(widthDir, direction));
+  }
   
   const halfWidth = dimensions.width / 2;
   const halfHeight = dimensions.height / 2;
@@ -557,15 +565,35 @@ export function calculateRotationFromNormalAndUp(
 }
 
 // 面のローカル座標系からupベクトルを計算（断面の中心線を合わせるため）
-// 既存Lumberの断面の向き（widthDirまたはheightDir）を使用
+// 面の種類に応じて適切なベクトルを返す
 export function getFaceUpVector(face: Face): Vector3 {
-  // 面にwidthDirが定義されている場合はそれを使用
-  // これにより、既存Lumberの断面の向きと新しいLumberの断面の向きが一致する
+  // 面の種類に応じてupベクトルを選択
+  // upベクトルは新しいLumberのX軸（幅方向）に対応する
+  
+  if (face.faceType === FaceType.EDGE) {
+    // 木端面（EDGE）の場合：heightDirをupベクトルとして使用
+    // これにより、previewLumberの高さ方向が既存Lumberの高さ方向と揃う
+    if (face.heightDir) {
+      return normalize(face.heightDir);
+    }
+  } else if (face.faceType === FaceType.FACE) {
+    // 面（FACE）の場合：heightDir（=元のwidthDir）をupベクトルとして使用
+    if (face.heightDir) {
+      return normalize(face.heightDir);
+    }
+  } else if (face.faceType === FaceType.END) {
+    // 木口面（END）の場合：widthDirをupベクトルとして使用
+    if (face.widthDir) {
+      return normalize(face.widthDir);
+    }
+  }
+  
+  // フォールバック: widthDirがあればそれを使用
   if (face.widthDir) {
     return normalize(face.widthDir);
   }
   
-  // フォールバック: デフォルトの上方向
+  // 最終フォールバック: デフォルトの上方向
   return { x: 0, y: 0, z: 1 };
 }
 
