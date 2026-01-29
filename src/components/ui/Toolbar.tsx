@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Icon from "./Icon";
 import { useUIMode } from "../../hooks/useUIMode";
 
@@ -29,6 +30,16 @@ export function Toolbar() {
         >
           <Icon name="plus" />
         </button>
+        <div className="w-px h-6 bg-gray-600" />
+        <Link
+          to="/templates/raisedbed"
+          className="p-2 rounded hover:bg-gray-700 text-gray-300 transition-colors"
+          title="Open Templates"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
+          </svg>
+        </Link>
       </div>
     </div>
   );
