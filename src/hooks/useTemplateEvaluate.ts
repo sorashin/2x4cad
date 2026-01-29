@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useModularStore } from '../stores/modular';
+import { useModularStore } from '../stores/templates/modular';
 
 interface UseTemplateEvaluateOptions {
   store: any; // パラメータストア

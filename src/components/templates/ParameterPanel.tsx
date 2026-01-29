@@ -1,4 +1,4 @@
-import { useRaisedBedStore } from '../../stores/raisedBed';
+import { useRaisedBedStore } from '../../stores/templates/raisedBed';
 
 export function ParameterPanel() {
   const { width, height, depth, setWidth, setHeight, setDepth } = useRaisedBedStore();

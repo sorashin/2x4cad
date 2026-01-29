@@ -1,5 +1,5 @@
 import { Edges } from '@react-three/drei';
-import { useModularStore } from '../../stores/modular';
+import { useModularStore } from '../../stores/templates/modular';
 import { mmToUnits } from '../../constants';
 
 export function TemplatesModel() {

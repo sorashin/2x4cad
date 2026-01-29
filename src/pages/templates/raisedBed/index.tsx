@@ -1,20 +1,19 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useModularStore } from '../../../stores/modular';
+import { useModularStore } from '../../../stores/templates/modular';
 import { useTemplateEvaluate } from '../../../hooks/useTemplateEvaluate';
 import { TemplatesCanvas } from '../../../components/templates/TemplatesCanvas';
 import { TEMPLATE_PANELS } from '../../../components/templates/panels';
-import { TEMPLATE_STORES, STORE_KEYS } from '../../../stores/templates';
+import { useRaisedBedStore } from '../../../stores/templates/raisedBed';
 
 const templateName = 'raisedbed';
+const storeKey = 'raisedBedStore';
 
 export function RaisedBedPage() {
   const { initializeModular, loadGraph, evaluateGraph, inputNodeId } = useModularStore();
 
-  const useTemplateStore = TEMPLATE_STORES[templateName];
   const TemplatePanel = TEMPLATE_PANELS[templateName];
-  const storeKey = STORE_KEYS[templateName];
-  const templateStore = useTemplateStore ? useTemplateStore() : null;
+  const templateStore = useRaisedBedStore();
 
   useEffect(() => {
     const init = async () => {

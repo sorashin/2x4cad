@@ -2,9 +2,9 @@ import { create } from 'zustand';
 import type { GeometryIdentifier, NodeInterop } from 'nodi-modular';
 import { Modular } from 'nodi-modular';
 import { BufferGeometry } from 'three';
-import { convertGeometryInterop } from '../utils/geometryUtils';
+import { convertGeometryInterop } from '../../utils/geometryUtils';
 import init from 'nodi-modular';
-import raisedbed from '../assets/graph/raisedbed.json';
+import raisedbed from '../../assets/graph/raisedbed.json';
 
 // WebAssemblyの初期化状態をグローバルに管理
 let initPromise: Promise<void> | null = null;
@@ -39,7 +39,7 @@ interface ModularState {
 // 必要に応じてグラフを動的にインポートする関数
 const importGraph = async (slug: string) => {
   try {
-    return await import(`../assets/graph/${slug}.json`);
+    return await import(`../../assets/graph/${slug}.json`);
   } catch (error) {
     console.error(`Graph for ${slug} not found:`, error);
     // デフォルトのグラフを返す
