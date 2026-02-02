@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { LumberType } from '../../types/lumber';
 
 // 部材定義の元データ（単一の真実の源）
-const DEFAULT_BOARDS = [
+export const DEFAULT_BOARDS = [
   {
     name: 'sideBoard',
     type: '1x4' as LumberType,
@@ -32,11 +32,6 @@ const DEFAULT_BOARDS = [
 export const getBoardLabels = () => {
   return DEFAULT_BOARDS.map(b => b.name);
 };
-
-/**
- * RaisedBedの部材ラベルの型
- */
-export type RaisedBedBoardLabel = ReturnType<typeof getBoardLabels>[number];
 
 interface RaisedBedStore {
   width: number;

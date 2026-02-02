@@ -5,6 +5,12 @@ import { BufferGeometry } from 'three';
 import { convertGeometryInterop } from '../../utils/geometryUtils';
 import init from 'nodi-modular';
 import raisedbed from '../../assets/graph/raisedbed.json';
+import type { LumberType } from '../../types/lumber';
+import { getBoardNameFromGeometryId, getBoardTypeFromName } from '../../utils/boardUtils';
+import { getGeometryBoundingBoxSize, inferBoardLength } from '../../hooks/useGeometryBoundingBox';
+import { parseNodeOutputToNumberArray } from '../../utils/nodeOutputParser';
+
+const LENGTH_LABEL_PREFIX = 'length_';
 
 // WebAssemblyの初期化状態をグローバルに管理
 let initPromise: Promise<void> | null = null;
@@ -15,18 +21,27 @@ export interface GeometryWithId {
   id: GeometryIdentifier;
   geometry: BufferGeometry;
 }
+export interface BoardGeometryWithId {
+  id: GeometryIdentifier;
+  geometry: BufferGeometry;
+  boardType: LumberType;
+  boardName: string;
+  boardLength: number;
+}
 
 // Zustandストアの型定義
 interface ModularState {
   modular: Modular | null;
   nodes: NodeInterop[];
   geometries: GeometryWithId[];
+  boardGeometries: BoardGeometryWithId[];
   inputNodeId: string;
 
   // アクション
   setModular: (modular: Modular) => void;
   setNodes: (nodes: NodeInterop[]) => void;
   setGeometries: (geometries: GeometryWithId[]) => void;
+  setBoardGeometries: (boardGeometries: BoardGeometryWithId[]) => void;
   setInputNodeId: (inputNodeId: string) => void;
 
   // 複雑な操作
@@ -52,11 +67,13 @@ export const useModularStore = create<ModularState>((set, get) => ({
   modular: null,
   nodes: [],
   geometries: [],
+  boardGeometries: [],
   inputNodeId: '',
 
   setModular: (modular) => set({ modular }),
   setNodes: (nodes) => set({ nodes }),
   setGeometries: (geometries) => set({ geometries }),
+  setBoardGeometries: (boardGeometries) => set({ boardGeometries }),
   setInputNodeId: (inputNodeId) => set({ inputNodeId }),
 
   initializeModular: async () => {
@@ -108,7 +125,6 @@ export const useModularStore = create<ModularState>((set, get) => ({
       modular.loadGraph(JSON.stringify(graphData.graph));
       const nodes = modular.getNodes();
       setNodes(nodes);
-      console.log('nodes:', nodes);
 
       // "input" ラベルを持つノードを検索
       const inputNode = nodes.find((node) => node.label === 'input');
@@ -121,7 +137,7 @@ export const useModularStore = create<ModularState>((set, get) => ({
   },
 
   evaluateGraph: async () => {
-    const { modular, setGeometries } = get();
+    const { modular, nodes, setGeometries, setBoardGeometries } = get();
     if (!modular) return;
 
     try {
@@ -144,9 +160,45 @@ export const useModularStore = create<ModularState>((set, get) => ({
         .filter((g): g is GeometryWithId => g !== null);
 
       setGeometries(gs);
+
+      // 各boardNameに対応する長さの候補を取得するためのマップを作成
+      const lengthCandidatesMap = new Map<string, number[]>();
+      for (const node of nodes) {
+        if (node.label?.startsWith(LENGTH_LABEL_PREFIX)) {
+          const boardName = node.label.slice(LENGTH_LABEL_PREFIX.length);
+          const output = modular.getNodeOutput(node.id);
+          const lengths = parseNodeOutputToNumberArray(output);
+          if (lengths.length > 0) {
+            lengthCandidatesMap.set(boardName, lengths);
+          }
+        }
+      }
+
+      // boardGeometriesを生成
+      const boardGs = gs.map((g) => {
+        const boardName = getBoardNameFromGeometryId(g.id, nodes);
+        const boardType = boardName ? getBoardTypeFromName(boardName) : undefined;
+
+        // boardTypeが見つからない場合はデフォルト値を使用
+        const effectiveBoardType = boardType ?? ('1x4' as LumberType);
+        const bboxSize = getGeometryBoundingBoxSize(g.geometry);
+
+        // 対応する長さの候補配列を取得
+        const candidateLengths = boardName ? lengthCandidatesMap.get(boardName) : undefined;
+        const boardLength = inferBoardLength(bboxSize, effectiveBoardType, candidateLengths);
+
+        return {
+          ...g,
+          boardName: boardName ?? '',
+          boardType: effectiveBoardType,
+          boardLength,
+        };
+      });
+      setBoardGeometries(boardGs);
     } catch (error) {
       console.error('Error evaluating graph:', error);
       setGeometries([]);
+      setBoardGeometries([]);
     }
   },
 
@@ -182,7 +234,6 @@ export const useModularStore = create<ModularState>((set, get) => ({
               },
             };
 
-      console.log(`Updating node ${id} with property:`, property);
       modular.changeNodeProperty(id, property);
       get().evaluateGraph();
     } catch (error) {

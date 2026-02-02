@@ -9,7 +9,16 @@ import { DialogDimensions } from '../../../components/templates/DialogDimensions
 import { useUIStore } from '../../../stores/templates/ui';
 
 const templateName = 'raisedbed';
-const storeKey = 'raisedBedStore';
+
+/** RaisedBedストアをグラフ入力用JSON文字列に変換（グラフは sideBoard/bottomBoard 等のプロパティを期待） */
+function serializeRaisedBedStore(store: ReturnType<typeof useRaisedBedStore.getState>) {
+  const { width, height, depth, boards } = store;
+  const boardsObj: Record<string, [number, number]> = {};
+  for (const board of boards) {
+    boardsObj[board.name] = board.size;
+  }
+  return JSON.stringify({ raisedBedStore: { width, height, depth, ...boardsObj } });
+}
 
 export function RaisedBedPage() {
   const { initializeModular, loadGraph, evaluateGraph, inputNodeId } = useModularStore();
@@ -33,7 +42,7 @@ export function RaisedBedPage() {
 
   useTemplateEvaluate({
     store: templateStore,
-    storeKey,
+    serialize: serializeRaisedBedStore,
     inputNodeId,
   });
 
