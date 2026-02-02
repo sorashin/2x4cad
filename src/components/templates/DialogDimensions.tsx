@@ -1,32 +1,49 @@
+import { useMemo } from 'react';
 import { Dialog } from '../ui/Dialog';
-import { useRaisedBedStore, getBoardLabels } from '../../stores/templates/raisedBed';
-import { useNodeOutputsByLabels } from '../../hooks/useNodeOutputsByLabels';
+import { useModularStore } from '../../stores/templates/modular';
 import { BoardRectangle } from './BoardRectangle';
 import { exportPartsToPdf, type BoardPart } from '../../utils/pdfExport';
+import { LUMBER_DIMENSIONS } from '../../types/lumber';
+import type { BoardGeometryWithId } from '../../stores/templates/modular';
 
 interface DialogDimensionsProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function DialogDimensions({ isOpen, onClose }: DialogDimensionsProps) {
-  const { boards } = useRaisedBedStore();
-  const boardLabels = getBoardLabels();
-  const boardOutputs = useNodeOutputsByLabels(boardLabels);
+/** boardGeometries を boardName でグループ化した Record */
+function groupBoardGeometriesByBoardName(
+  boardGeometries: BoardGeometryWithId[]
+): Record<string, BoardGeometryWithId[]> {
+  const grouped: Record<string, BoardGeometryWithId[]> = {};
+  for (const g of boardGeometries) {
+    const name = g.boardName || '(unknown)';
+    if (!grouped[name]) grouped[name] = [];
+    grouped[name].push(g);
+  }
+  return grouped;
+}
 
-  const getBoardHeight = (label: string): number => {
-    const board = boards.find((b) => b.name === label);
-    if (!board) return 0;
-    return Math.max(board.size[0], board.size[1]);
-  };
+/** boardType から断面の高さ（表示用）を取得 */
+function getBoardCrossSectionHeight(boardType: BoardGeometryWithId['boardType']): number {
+  const dims = LUMBER_DIMENSIONS[boardType];
+  return dims ? Math.max(dims.width, dims.height) : 0;
+}
+
+export function DialogDimensions({ isOpen, onClose }: DialogDimensionsProps) {
+  const boardGeometries = useModularStore((s) => s.boardGeometries);
+
+  const boardGroups = useMemo(
+    () => groupBoardGeometriesByBoardName(boardGeometries),
+    [boardGeometries]
+  );
 
   const getAllParts = (): BoardPart[] => {
     const parts: BoardPart[] = [];
-    for (const [label, values] of Object.entries(boardOutputs)) {
-      if (!values) continue;
-      const height = getBoardHeight(label);
-      for (const width of values) {
-        parts.push({ label, width, height });
+    for (const [label, items] of Object.entries(boardGroups)) {
+      const height = items[0] ? getBoardCrossSectionHeight(items[0].boardType) : 0;
+      for (const g of items) {
+        parts.push({ label, width: g.boardLength, height });
       }
     }
     return parts;
@@ -37,7 +54,7 @@ export function DialogDimensions({ isOpen, onClose }: DialogDimensionsProps) {
     exportPartsToPdf(parts);
   };
 
-  const totalParts = getAllParts().length;
+  const totalParts = boardGeometries.length;
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} className="max-h-[85vh] overflow-hidden flex flex-col">
@@ -65,32 +82,30 @@ export function DialogDimensions({ isOpen, onClose }: DialogDimensionsProps) {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="space-y-8">
-          {boardLabels.map((label) => {
-            const values = boardOutputs[label];
-            if (!values || values.length === 0) return null;
-
-            const boardHeight = getBoardHeight(label);
+          {Object.entries(boardGroups).map(([boardName, items]) => {
+            if (items.length === 0) return null;
+            const crossSectionHeight = getBoardCrossSectionHeight(items[0].boardType);
 
             return (
-              <section key={label}>
+              <section key={boardName}>
                 {/* Section header */}
                 <div className="flex items-baseline justify-between mb-4 pb-2 border-b border-content-xl">
                   <h3 className="font-display text-sm uppercase text-content-m text-balance">
-                    {label}
+                    {boardName}
                   </h3>
                   <span className="font-display text-xs tabular-nums text-content-h">
-                    {values.length}
+                    {items.length}
                     <span className="text-content-m-a ml-1">pcs</span>
                   </span>
                 </div>
 
-                {/* Board grid */}
+                {/* Board grid: 板の長さを矩形で表示 */}
                 <div className="flex flex-wrap gap-3">
-                  {values.map((width, index) => (
+                  {items.map((g, index) => (
                     <BoardRectangle
-                      key={`${label}-${index}`}
-                      width={width}
-                      height={boardHeight}
+                      key={`${boardName}-${index}`}
+                      width={g.boardLength}
+                      height={crossSectionHeight}
                       maxWidth={120}
                     />
                   ))}

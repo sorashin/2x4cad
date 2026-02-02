@@ -13,7 +13,7 @@ export function BoardRectangle({ width, height, maxWidth = 200 }: BoardRectangle
     <div className="flex flex-col items-center gap-1.5">
       {/* Board visualization */}
       <div
-        className="bg-wood-l border border-wood-m flex items-center justify-center rounded-sm"
+        className="bg-wood-l border border-wood-m flex items-center justify-center"
         style={{
           width: `${scaledWidth}px`,
           height: `${scaledHeight}px`,

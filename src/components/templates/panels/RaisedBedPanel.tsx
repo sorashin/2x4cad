@@ -1,20 +1,33 @@
-
-import { useRaisedBedStore, getBoardLabels } from '../../../stores/templates/raisedBed';
-import { useNodeOutputsByLabels } from '../../../hooks/useNodeOutputsByLabels';
+import { useMemo } from 'react';
+import { useRaisedBedStore } from '../../../stores/templates/raisedBed';
+import { useModularStore } from '../../../stores/templates/modular';
 import { useUIStore } from '../../../stores/templates/ui';
 import { ParameterSlider } from '../ParameterSlider';
 
+/** boardGeometries を boardName でグループ化した Record */
+function groupBoardGeometriesByBoardName(
+  boardGeometries: { boardName: string }[]
+): Record<string, { boardName: string }[]> {
+  const grouped: Record<string, { boardName: string }[]> = {};
+  for (const g of boardGeometries) {
+    const name = g.boardName || '(unknown)';
+    if (!grouped[name]) grouped[name] = [];
+    grouped[name].push(g);
+  }
+  return grouped;
+}
 
 export function RaisedBedPanel() {
   const { width, height, depth, setWidth, setHeight, setDepth } = useRaisedBedStore();
   const { openDialog } = useUIStore();
-  const boardLabels = getBoardLabels();
-  const boardOutputs = useNodeOutputsByLabels(boardLabels);
+  const boardGeometries = useModularStore((s) => s.boardGeometries);
 
-  const totalParts = Object.values(boardOutputs).reduce(
-    (sum, values) => sum + (values?.length ?? 0),
-    0
+  const boardGroups = useMemo(
+    () => groupBoardGeometriesByBoardName(boardGeometries),
+    [boardGeometries]
   );
+
+  const totalParts = boardGeometries.length;
 
   return (
     <aside
@@ -58,7 +71,7 @@ export function RaisedBedPanel() {
       <div className="mx-4 border-t border-content-xl" />
 
       {/* Output summary */}
-      {boardOutputs && Object.keys(boardOutputs).length > 0 && (
+      {boardGeometries.length > 0 && (
         <div className="p-4">
           <div className="flex items-baseline justify-between mb-3">
             <h3 className="font-display text-overline uppercase text-content-m-a text-balance">
@@ -70,14 +83,14 @@ export function RaisedBedPanel() {
             </span>
           </div>
           <ul className="space-y-1">
-            {Object.entries(boardOutputs).map(([label, values]) => (
+            {Object.entries(boardGroups).map(([boardName, items]) => (
               <li
-                key={label}
+                key={boardName}
                 className="flex items-baseline justify-between font-display text-xs"
               >
-                <span className="text-content-m truncate">{label}</span>
+                <span className="text-content-m truncate">{boardName}</span>
                 <span className="tabular-nums text-content-h">
-                  {values.length}
+                  {items.length}
                 </span>
               </li>
             ))}
