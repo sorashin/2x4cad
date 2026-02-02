@@ -10,6 +10,8 @@ interface UIStoreState {
     dialog: DialogState;
     openDialog: (type: DialogState['type']) => void;
     closeDialog: () => void;
+    leftMenuWidth: number;
+    setLeftMenuWidth: (width: number) => void;
 }
 
 export const useUIStore = create<UIStoreState>()((set) => ({
@@ -19,4 +21,6 @@ export const useUIStore = create<UIStoreState>()((set) => ({
   },
   openDialog: (type) => set({ dialog: { isOpen: true, type } }),
   closeDialog: () => set({ dialog: { isOpen: false, type: '' } }),
+  leftMenuWidth: 320,
+  setLeftMenuWidth: (width) => set({ leftMenuWidth: width }),
 }));

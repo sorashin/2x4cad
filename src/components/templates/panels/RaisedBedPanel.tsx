@@ -18,12 +18,12 @@ export function RaisedBedPanel() {
 
   return (
     <aside
-      className="absolute left-4 top-4 w-72 bg-white/80 backdrop-blur-sm rounded-lg shadow-lg overflow-hidden text-content-h"
+      className="w-full h-full "
       role="complementary"
       aria-label="Model parameters"
     >
       {/* Header */}
-      <header className="px-4 py-3 border-b border-content-xl bg-content-xxl">
+      <header className="px-4 py-3 border-b border-content-xl ">
         <h2 className="font-display text-sm uppercase text-content-m text-balance">
           Raised Bed
         </h2>
