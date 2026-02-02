@@ -37,53 +37,79 @@ export function DialogDimensions({ isOpen, onClose }: DialogDimensionsProps) {
     exportPartsToPdf(parts);
   };
 
+  const totalParts = getAllParts().length;
+
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} className="p-6 max-h-[80vh] overflow-y-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold text-content-h-a">部材リスト</h2>
-        <button
-          onClick={handleExportPdf}
-          className="px-4 py-2 rounded hover:bg-blue-600 text-sm"
-        >
-          PDFをエクスポート
-        </button>
+    <Dialog isOpen={isOpen} onClose={onClose} className="max-h-[85vh] overflow-hidden flex flex-col">
+      {/* Header */}
+      <header className="px-6 py-4 border-b border-content-xl bg-content-xxl shrink-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-lg uppercase text-content-h text-balance">
+              Parts List
+            </h2>
+            <p className="font-display text-overline text-content-m-a mt-0.5">
+              <span className="tabular-nums">{totalParts}</span> parts total
+            </p>
+          </div>
+          <button
+            onClick={handleExportPdf}
+            className="h-9 px-4 font-display text-xs uppercase bg-wood-m text-white rounded hover:bg-wood-h focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wood-h"
+            aria-label="Export parts list to PDF"
+          >
+            Export PDF
+          </button>
+        </div>
+      </header>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="space-y-8">
+          {boardLabels.map((label) => {
+            const values = boardOutputs[label];
+            if (!values || values.length === 0) return null;
+
+            const boardHeight = getBoardHeight(label);
+
+            return (
+              <section key={label}>
+                {/* Section header */}
+                <div className="flex items-baseline justify-between mb-4 pb-2 border-b border-content-xl">
+                  <h3 className="font-display text-sm uppercase text-content-m text-balance">
+                    {label}
+                  </h3>
+                  <span className="font-display text-xs tabular-nums text-content-h">
+                    {values.length}
+                    <span className="text-content-m-a ml-1">pcs</span>
+                  </span>
+                </div>
+
+                {/* Board grid */}
+                <div className="flex flex-wrap gap-3">
+                  {values.map((width, index) => (
+                    <BoardRectangle
+                      key={`${label}-${index}`}
+                      width={width}
+                      height={boardHeight}
+                      maxWidth={120}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="space-y-6">
-        {boardLabels.map((label) => {
-          const values = boardOutputs[label];
-          if (!values || values.length === 0) return null;
-
-          const boardHeight = getBoardHeight(label);
-
-          return (
-            <div key={label} className="border-t pt-4 first:border-t-0 first:pt-0">
-              <h3 className="text-sm font-semibold text-content-h-a mb-3">
-                {label} ({values.length}個)
-              </h3>
-              <div className="flex flex-wrap gap-4">
-                {values.map((width, index) => (
-                  <BoardRectangle
-                    key={`${label}-${index}`}
-                    width={width}
-                    height={boardHeight}
-                    maxWidth={150}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-6 pt-4 border-t">
+      {/* Footer */}
+      <footer className="px-6 py-4 border-t border-content-xl bg-content-xxl shrink-0">
         <button
           onClick={onClose}
-          className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
+          className="w-full h-10 font-display text-sm uppercase bg-content-xl text-content-h rounded hover:bg-content-l focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-content-m"
         >
-          閉じる
+          Close
         </button>
-      </div>
+      </footer>
     </Dialog>
   );
 }

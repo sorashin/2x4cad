@@ -1,98 +1,100 @@
-import { useState } from 'react';
+
 import { useRaisedBedStore, getBoardLabels } from '../../../stores/templates/raisedBed';
 import { useNodeOutputsByLabels } from '../../../hooks/useNodeOutputsByLabels';
-import { DialogDimensions } from '../DialogDimensions';
+import { useUIStore } from '../../../stores/templates/ui';
+import { ParameterSlider } from '../ParameterSlider';
+
 
 export function RaisedBedPanel() {
   const { width, height, depth, setWidth, setHeight, setDepth } = useRaisedBedStore();
-  const [isDimensionsOpen, setIsDimensionsOpen] = useState(false);
+  const { openDialog } = useUIStore();
   const boardLabels = getBoardLabels();
   const boardOutputs = useNodeOutputsByLabels(boardLabels);
 
+  const totalParts = Object.values(boardOutputs).reduce(
+    (sum, values) => sum + (values?.length ?? 0),
+    0
+  );
+
   return (
-    <div className="absolute right-4 top-4 bg-white/90 p-6 rounded-lg shadow-lg min-w-[300px] text-content-h-a">
-      <h2 className="text-lg font-bold mb-4">Raised Bed パラメータ</h2>
+    <aside
+      className="absolute left-4 top-4 w-72 bg-white/80 backdrop-blur-sm rounded-lg shadow-lg overflow-hidden text-content-h"
+      role="complementary"
+      aria-label="Model parameters"
+    >
+      {/* Header */}
+      <header className="px-4 py-3 border-b border-content-xl bg-content-xxl">
+        <h2 className="font-display text-sm uppercase text-content-m text-balance">
+          Raised Bed
+        </h2>
+      </header>
 
-      <div className="space-y-4">
-        {/* Width */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            幅 (Width): {width}mm
-          </label>
-          <input
-            type="range"
-            min={600}
-            max={2400}
-            step={10}
-            value={width}
-            onChange={(e) => setWidth(Number(e.target.value))}
-            className="w-full"
-          />
-        </div>
-
-        {/* Height */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            高さ (Height): {height}mm
-          </label>
-          <input
-            type="range"
-            min={100}
-            max={600}
-            step={10}
-            value={height}
-            onChange={(e) => setHeight(Number(e.target.value))}
-            className="w-full"
-          />
-        </div>
-
-        {/* Depth */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            奥行き (Depth): {depth}mm
-          </label>
-          <input
-            type="range"
-            min={300}
-            max={1200}
-            step={10}
-            value={depth}
-            onChange={(e) => setDepth(Number(e.target.value))}
-            className="w-full"
-          />
-        </div>
-
-        {/* Board Sizes - グラフから取得 */}
-        <div className="border-t pt-4 mt-4">
-          {boardOutputs && Object.keys(boardOutputs).length > 0 && (
-            <>
-              <h3 className="text-sm font-bold mb-2">ボードサイズ（グラフ出力）</h3>
-              <div className="space-y-1 text-xs">
-                {Object.entries(boardOutputs).map(([label, values]) => (
-                  <div key={label}>
-                    {label}: [{values.join(', ')}]
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* 部材リストボタン */}
-        <div className="border-t pt-4 mt-4">
-          <button
-            onClick={() => setIsDimensionsOpen(true)}
-            className="w-full px-4 py-2 rounded hover:bg-blue-600 text-sm"
-          >
-            部材リストを表示
-          </button>
-        </div>
+      {/* Parameters */}
+      <div className="p-4 space-y-6">
+        <ParameterSlider
+          label="幅"
+          value={width}
+          min={600}
+          max={2400}
+          onChange={setWidth}
+        />
+        <ParameterSlider
+          label="高さ"
+          value={height}
+          min={100}
+          max={600}
+          onChange={setHeight}
+        />
+        <ParameterSlider
+          label="奥行き"
+          value={depth}
+          min={300}
+          max={1200}
+          onChange={setDepth}
+        />
       </div>
 
-      <DialogDimensions
-        isOpen={isDimensionsOpen}
-        onClose={() => setIsDimensionsOpen(false)}
-      />
-    </div>
+      {/* Divider */}
+      <div className="mx-4 border-t border-content-xl" />
+
+      {/* Output summary */}
+      {boardOutputs && Object.keys(boardOutputs).length > 0 && (
+        <div className="p-4">
+          <div className="flex items-baseline justify-between mb-3">
+            <h3 className="font-display text-overline uppercase text-content-m-a text-balance">
+              Output
+            </h3>
+            <span className="font-display text-sm tabular-nums text-content-h">
+              {totalParts}
+              <span className="text-content-m-a ml-1">parts</span>
+            </span>
+          </div>
+          <ul className="space-y-1">
+            {Object.entries(boardOutputs).map(([label, values]) => (
+              <li
+                key={label}
+                className="flex items-baseline justify-between font-display text-xs"
+              >
+                <span className="text-content-m truncate">{label}</span>
+                <span className="tabular-nums text-content-h">
+                  {values.length}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Action */}
+      <div className="p-4 pt-0">
+        <button
+          onClick={() => openDialog('dimensions')}
+          className="w-full h-10 font-display text-sm uppercase bg-wood-m text-white rounded hover:bg-wood-h focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wood-h"
+        >
+          View Parts List
+        </button>
+      </div>
+
+    </aside>
   );
 }

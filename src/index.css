@@ -1,5 +1,38 @@
 @import "tailwindcss";
 
+/* MintMono font */
+@font-face {
+  font-family: "MintMono";
+  src: url("/font/MintoMono/MintMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MintMono";
+  src: url("/font/MintoMono/MintMono-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MintMono";
+  src: url("/font/MintoMono/MintMono-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MintMono";
+  src: url("/font/MintoMono/MintMono-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 @theme {
   /* screens */
   --breakpoint-sm: 480px;
@@ -39,8 +72,13 @@
   --color-system-success: #00FF00;
   --color-system-info: #4597F7;
 
+  /* Wood / Warm accent */
+  --color-wood-h: #8B7355;
+  --color-wood-m: #A89078;
+  --color-wood-l: #D4C4B0;
+
   --font-sans: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --font-display: "F5.6", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-display: "MintMono", "F5.6", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --font-neco: "Neco", sans-serif;
 
   --text-overline: 0.625rem;

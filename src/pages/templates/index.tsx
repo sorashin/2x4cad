@@ -14,11 +14,11 @@ export function TemplatesPage() {
 
   if (!PageComponent) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center">
+      <div className="w-screen h-screen flex items-center justify-center text-content-h-a">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">テンプレートが見つかりません</h1>
           <p className="mb-4">テンプレート「{graphName}」は存在しません。</p>
-          <Link to="/" className="text-blue-500 hover:underline">
+          <Link to="/" className="">
             ← エディタに戻る
           </Link>
         </div>
