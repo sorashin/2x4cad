@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { useRaisedBedStore, getBoardLabels } from '../../../stores/templates/raisedBed';
 import { useNodeOutputsByLabels } from '../../../hooks/useNodeOutputsByLabels';
+import { DialogDimensions } from '../DialogDimensions';
 
 export function RaisedBedPanel() {
   const { width, height, depth, setWidth, setHeight, setDepth } = useRaisedBedStore();
+  const [isDimensionsOpen, setIsDimensionsOpen] = useState(false);
   const boardLabels = getBoardLabels();
   const boardOutputs = useNodeOutputsByLabels(boardLabels);
 
@@ -74,7 +77,22 @@ export function RaisedBedPanel() {
             </>
           )}
         </div>
+
+        {/* 部材リストボタン */}
+        <div className="border-t pt-4 mt-4">
+          <button
+            onClick={() => setIsDimensionsOpen(true)}
+            className="w-full px-4 py-2 rounded hover:bg-blue-600 text-sm"
+          >
+            部材リストを表示
+          </button>
+        </div>
       </div>
+
+      <DialogDimensions
+        isOpen={isDimensionsOpen}
+        onClose={() => setIsDimensionsOpen(false)}
+      />
     </div>
   );
 }
