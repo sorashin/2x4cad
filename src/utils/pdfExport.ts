@@ -10,12 +10,31 @@ interface GroupedParts {
   [label: string]: BoardPart[];
 }
 
-export function exportPartsToPdf(parts: BoardPart[]): void {
+async function loadFont(doc: jsPDF): Promise<void> {
+  const response = await fetch('/fonts/NotoSansJP-Regular.ttf');
+  const arrayBuffer = await response.arrayBuffer();
+  const base64 = btoa(
+    new Uint8Array(arrayBuffer).reduce(
+      (data, byte) => data + String.fromCharCode(byte),
+      ''
+    )
+  );
+
+  doc.addFileToVFS('NotoSansJP-Regular.ttf', base64);
+  doc.addFont('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
+}
+
+export async function exportPartsToPdf(parts: BoardPart[]): Promise<void> {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
   });
+
+  // Load Japanese font
+  await loadFont(doc);
+  doc.setFont('NotoSansJP', 'normal');
+  doc.setTextColor(30, 30, 30); // Dark text color
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
@@ -25,11 +44,13 @@ export function exportPartsToPdf(parts: BoardPart[]): void {
 
   // Title
   doc.setFontSize(18);
+  doc.setTextColor(30, 30, 30);
   doc.text('部材リスト - Raised Bed', margin, y);
   y += 10;
 
   // Date
   doc.setFontSize(10);
+  doc.setTextColor(80, 80, 80);
   const date = new Date().toLocaleDateString('ja-JP');
   doc.text(`作成日: ${date}`, margin, y);
   y += 15;
@@ -58,11 +79,10 @@ export function exportPartsToPdf(parts: BoardPart[]): void {
 
     // Group header
     doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${label} (${labelParts.length}個)`, margin, y);
+    doc.setTextColor(30, 30, 30);
+    doc.text(`${label} (${labelParts.length}P)`, margin, y);
     y += 8;
 
-    doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
 
     // Draw each part

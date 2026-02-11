@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useUIStore } from '../../stores/templates/ui';
 import { TemplatesCanvas } from './TemplatesCanvas';

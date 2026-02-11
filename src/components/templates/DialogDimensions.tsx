@@ -49,9 +49,9 @@ export function DialogDimensions({ isOpen, onClose }: DialogDimensionsProps) {
     return parts;
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     const parts = getAllParts();
-    exportPartsToPdf(parts);
+    await exportPartsToPdf(parts);
   };
 
   const totalParts = boardGeometries.length;
