@@ -14,6 +14,8 @@ interface UIStoreState {
     setLeftMenuWidth: (width: number) => void;
     bom: number;
     updateBom: (bom: number) => void;
+    drawerOpen: boolean;
+    setDrawerOpen: (open: boolean) => void;
 }
 
 export const useUIStore = create<UIStoreState>()((set) => ({
@@ -27,4 +29,6 @@ export const useUIStore = create<UIStoreState>()((set) => ({
   setLeftMenuWidth: (width) => set({ leftMenuWidth: width }),
   bom: 0,
   updateBom: (bom) => set({ bom }),
+  drawerOpen: false,
+  setDrawerOpen: (open) => set({ drawerOpen: open }),
 }));

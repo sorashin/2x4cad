@@ -2,13 +2,15 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useUIStore } from '../../stores/templates/ui';
 import { TemplatesCanvas } from './TemplatesCanvas';
+import { Drawer } from '../ui/Drawer';
+import Icon from '../ui/Icon';
 
 interface TemplateLayoutProps {
   left: ReactNode;
 }
 
 export function TemplateLayout({ left }: TemplateLayoutProps) {
-  const { leftMenuWidth, setLeftMenuWidth } = useUIStore();
+  const { leftMenuWidth, setLeftMenuWidth, drawerOpen, setDrawerOpen } = useUIStore();
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -62,20 +64,22 @@ export function TemplateLayout({ left }: TemplateLayoutProps) {
       {/* Mobile: 縦方向レイアウト（left: 上64px固定、right: 残り） */}
       <div className="md:hidden flex flex-col h-full w-full">
         {/* Left Panel - 上に64px固定 */}
-        <div className="h-14 overflow-y-auto bg-surface-base p-2">
+        <div className='bg-surface-base p-2 h-14 flex items-center justify-start'>
+
+        <button onClick={() => setDrawerOpen(true)} className='text-content-m-a'>  
+          <Icon name="parameters" />
+        </button>
+        <p className='ml-4 text-content-m-a font-mono'>RaisedBed</p>
+        <Drawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)}>
           {left}
+        </Drawer>
         </div>
 
         {/* Right Panel - 残りのスペース */}
         <div className="flex-1 overflow-hidden relative">
           <div className="absolute inset-0">
             <TemplatesCanvas />
-            <Link
-              to="/"
-              className="absolute left-4 bottom-4 z-10 text-content-h-a"
-            >
-              ← エディタに戻る
-            </Link>
+            
           </div>
         </div>
       </div>
