@@ -6,12 +6,13 @@ import { LUMBER_DIMENSIONS } from '../../types/lumber';
 
 interface BoardMeshProps {
   boardGeometry: BoardGeometryWithId;
+  positionOffset?: [number, number, number];
 }
 
 const HOVER_OFF_DELAY_MS = 120;
 const LABEL_OFFSET_Y_PX = 60; // ラベルを上にオフセットするピクセル数
 
-export function BoardMesh({ boardGeometry }: BoardMeshProps) {
+export function BoardMesh({ boardGeometry, positionOffset }: BoardMeshProps) {
   const [hovered, setHovered] = useState(false);
   const hoverOffTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { geometry, boardName, boardType, boardLength } = boardGeometry;
@@ -44,6 +45,7 @@ export function BoardMesh({ boardGeometry }: BoardMeshProps) {
     <mesh
       geometry={geometry}
       rotation={[Math.PI, 0, 0]}
+      position={positionOffset}
       onPointerOver={(e) => {
         e.stopPropagation();
         if (hoverOffTimeoutRef.current) {
