@@ -30,7 +30,14 @@ export function RaisedBedPage() {
       try {
         await initializeModular();
         await loadGraph(templateName);
-        await evaluateGraph();
+        // 初回評価時にストアの値をグラフに反映させる
+        const { inputNodeId: nodeId, updateNodeProperty } = useModularStore.getState();
+        if (nodeId) {
+          const serialized = serializeRaisedBedStore(useRaisedBedStore.getState());
+          updateNodeProperty(nodeId, serialized);
+        } else {
+          await evaluateGraph();
+        }
       } catch (error) {
         console.error('Error initializing templates page:', error);
       }

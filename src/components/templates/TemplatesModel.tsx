@@ -4,6 +4,7 @@ import { useModularStore, type BoardGeometryWithId } from '../../stores/template
 import { useUIStore } from '../../stores/templates/ui';
 import { mmToUnits } from '../../constants';
 import { BoardMesh } from './BoardMesh';
+import { CasterModel } from './CasterModel';
 import { BOARD_COLOR_MAP } from '../../constants/boardColors';
 
 function getBoardGeometryKey(bg: { id: { graphNodeSet?: { nodeId?: string }; transform?: unknown } }, index: number): string {
@@ -59,6 +60,7 @@ export function TemplatesModel() {
           colorOverride={colorByBoard ? BOARD_COLOR_MAP[bg.boardName] : undefined}
         />
       ))}
+      <CasterModel />
     </group>
   );
 }
