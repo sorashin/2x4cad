@@ -10,13 +10,13 @@ export const DEFAULT_BOARDS = [
   },
   {
     name: 'bottomBoard',
-    type: '2x4' as LumberType,
-    size: [89, 38] as [number, number]
+    type: '1x4' as LumberType,
+    size: [89, 19] as [number, number]
   },
   {
     name: 'post',
     type: 'rafter' as LumberType,
-    size: [45, 45] as [number, number]
+    size: [35, 35] as [number, number]
   },
   {
     name: 'footBoard',

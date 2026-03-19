@@ -16,6 +16,8 @@ interface UIStoreState {
     updateBom: (bom: number) => void;
     drawerOpen: boolean;
     setDrawerOpen: (open: boolean) => void;
+    colorByBoard: boolean;
+    toggleColorByBoard: () => void;
 }
 
 export const useUIStore = create<UIStoreState>()((set) => ({
@@ -31,4 +33,6 @@ export const useUIStore = create<UIStoreState>()((set) => ({
   updateBom: (bom) => set({ bom }),
   drawerOpen: false,
   setDrawerOpen: (open) => set({ drawerOpen: open }),
+  colorByBoard: false,
+  toggleColorByBoard: () => set((s) => ({ colorByBoard: !s.colorByBoard })),
 }));

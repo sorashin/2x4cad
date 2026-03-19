@@ -4,6 +4,7 @@ import { useModularStore, type BoardGeometryWithId } from '../../stores/template
 import { useUIStore } from '../../stores/templates/ui';
 import { mmToUnits } from '../../constants';
 import { BoardMesh } from './BoardMesh';
+import { BOARD_COLOR_MAP } from '../../constants/boardColors';
 
 function getBoardGeometryKey(bg: { id: { graphNodeSet?: { nodeId?: string }; transform?: unknown } }, index: number): string {
   const nodeId = bg.id.graphNodeSet?.nodeId ?? 'n';
@@ -14,7 +15,7 @@ const EXPLOSION_MULTIPLIER = 2;
 
 export function TemplatesModel() {
   const { boardGeometries } = useModularStore();
-  const { bom } = useUIStore();
+  const { bom, colorByBoard } = useUIStore();
   const scale = mmToUnits(1); // 1mm = 1/100 Three.js units
 
   // 全メッシュの中心を計算（点B: シーンの重心）
@@ -55,6 +56,7 @@ export function TemplatesModel() {
           key={getBoardGeometryKey(bg, index)}
           boardGeometry={bg}
           positionOffset={getOffset(bg)}
+          colorOverride={colorByBoard ? BOARD_COLOR_MAP[bg.boardName] : undefined}
         />
       ))}
     </group>

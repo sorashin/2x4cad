@@ -4,7 +4,7 @@ import { TemplatesModel } from './TemplatesModel';
 import { useUIStore } from '../../stores/templates/ui';
 
 export function TemplatesCanvas() {
-  const { bom, updateBom } = useUIStore();
+  const { bom, updateBom, colorByBoard, toggleColorByBoard } = useUIStore();
 
   return (
     <div className="flex-1 absolute top-0 left-0 w-full h-full">
@@ -40,6 +40,20 @@ export function TemplatesCanvas() {
             <span className="text-xs font-mono text-content-h w-8 text-right tabular-nums">
               {Math.round(bom * 100)}%
             </span>
+
+            <div className="w-px h-4 bg-neutral-300" />
+
+            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={colorByBoard}
+                onChange={toggleColorByBoard}
+                className="w-3 h-3 accent-content-h cursor-pointer"
+              />
+              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-content-h">
+                Color
+              </span>
+            </label>
           </div>
         </div>
       </div>

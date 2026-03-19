@@ -7,12 +7,13 @@ import { LUMBER_DIMENSIONS } from '../../types/lumber';
 interface BoardMeshProps {
   boardGeometry: BoardGeometryWithId;
   positionOffset?: [number, number, number];
+  colorOverride?: string;
 }
 
 const HOVER_OFF_DELAY_MS = 120;
 const LABEL_OFFSET_Y_PX = 60; // ラベルを上にオフセットするピクセル数
 
-export function BoardMesh({ boardGeometry, positionOffset }: BoardMeshProps) {
+export function BoardMesh({ boardGeometry, positionOffset, colorOverride }: BoardMeshProps) {
   const [hovered, setHovered] = useState(false);
   const hoverOffTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { geometry, boardName, boardType, boardLength } = boardGeometry;
@@ -65,7 +66,7 @@ export function BoardMesh({ boardGeometry, positionOffset }: BoardMeshProps) {
         }, HOVER_OFF_DELAY_MS);
       }}
     >
-      <meshStandardMaterial color={hovered ? '#e5c9a8' : '#d4a373'} flatShading />
+      <meshStandardMaterial color={colorOverride ?? (hovered ? '#e5c9a8' : '#d4a373')} flatShading />
       <Edges threshold={45} color="#8b5a2b" />
 
       {hovered && (

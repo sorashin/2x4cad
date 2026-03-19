@@ -1,14 +1,18 @@
 import { useMemo } from 'react';
 import { useRaisedBedStore } from '../../../stores/templates/raisedBed';
-import { useModularStore } from '../../../stores/templates/modular';
+import { useModularStore, type BoardGeometryWithId } from '../../../stores/templates/modular';
 import { useUIStore } from '../../../stores/templates/ui';
 import { ParameterSlider } from '../ParameterSlider';
+import { exportBoardGeometriesAsSTL } from '../../../utils/stlExport';
+import { BOARD_COLOR_MAP } from '../../../constants/boardColors';
+import { BoardRectangle } from '../BoardRectangle';
+import { LUMBER_DIMENSIONS } from '../../../types/lumber';
 
 /** boardGeometries を boardName でグループ化した Record */
 function groupBoardGeometriesByBoardName(
-  boardGeometries: { boardName: string }[]
-): Record<string, { boardName: string }[]> {
-  const grouped: Record<string, { boardName: string }[]> = {};
+  boardGeometries: BoardGeometryWithId[]
+): Record<string, BoardGeometryWithId[]> {
+  const grouped: Record<string, BoardGeometryWithId[]> = {};
   for (const g of boardGeometries) {
     const name = g.boardName || '(unknown)';
     if (!grouped[name]) grouped[name] = [];
@@ -17,9 +21,21 @@ function groupBoardGeometriesByBoardName(
   return grouped;
 }
 
+/** 同一グループ内を長さ別にサブグループ化 */
+function groupByLength(items: BoardGeometryWithId[]): BoardGeometryWithId[][] {
+  const map = new Map<number, BoardGeometryWithId[]>();
+  for (const g of items) {
+    const len = g.boardLength;
+    if (!map.has(len)) map.set(len, []);
+    map.get(len)!.push(g);
+  }
+  // 長い順にソート
+  return [...map.entries()].sort((a, b) => b[0] - a[0]).map(([, v]) => v);
+}
+
 export function RaisedBedPanel() {
   const { width, height, depth, setWidth, setHeight, setDepth } = useRaisedBedStore();
-  const { openDialog } = useUIStore();
+  const { openDialog, colorByBoard } = useUIStore();
   const boardGeometries = useModularStore((s) => s.boardGeometries);
 
   const boardGroups = useMemo(
@@ -28,6 +44,16 @@ export function RaisedBedPanel() {
   );
 
   const totalParts = boardGeometries.length;
+
+  // パネル内の描画幅(px) — padding 16px*2 を除いた領域
+  const containerWidth = 288 - 32;
+
+  // 全材の最大長を基準にスケールを決定
+  const maxLength = useMemo(
+    () => Math.max(...boardGeometries.map((g) => g.boardLength), 1),
+    [boardGeometries]
+  );
+  const pxPerMm = containerWidth / maxLength;
 
   return (
     <aside
@@ -82,29 +108,73 @@ export function RaisedBedPanel() {
               <span className="text-content-m-a ml-1">parts</span>
             </span>
           </div>
-          <ul className="space-y-1">
-            {Object.entries(boardGroups).map(([boardName, items]) => (
-              <li
-                key={boardName}
-                className="flex items-baseline justify-between font-display text-xs"
-              >
-                <span className="text-content-m truncate">{boardName}</span>
-                <span className="tabular-nums text-content-h">
-                  {items.length}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-4">
+            {Object.entries(boardGroups).map(([boardName, items]) => {
+              const dims = LUMBER_DIMENSIONS[items[0].boardType];
+              const crossHeight = dims ? Math.max(dims.width, dims.height) : 0;
+
+              return (
+                <div key={boardName}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-display text-xs text-content-m flex items-center gap-1.5">
+                      {colorByBoard && BOARD_COLOR_MAP[boardName] && (
+                        <span
+                          className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
+                          style={{ backgroundColor: BOARD_COLOR_MAP[boardName] }}
+                        />
+                      )}
+                      {boardName}
+                    </span>
+                    <span className="font-display text-xs tabular-nums text-content-h">
+                      {items.length}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {groupByLength(items).map((subGroup) => {
+                      const colWidth = Math.max(subGroup[0].boardLength * pxPerMm, 24);
+                      return (
+                        <div
+                          key={subGroup[0].boardLength}
+                          className="grid gap-2"
+                          style={{
+                            gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+                          }}
+                        >
+                          {subGroup.map((g, i) => (
+                            <BoardRectangle
+                              key={`${boardName}-${g.boardLength}-${i}`}
+                              width={g.boardLength}
+                              height={crossHeight}
+                              scale={pxPerMm}
+                              color={colorByBoard ? BOARD_COLOR_MAP[boardName] : undefined}
+                              label={g.boardType}
+                            />
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* Action */}
-      <div className="p-4 pt-0">
+      <div className="p-4 pt-0 space-y-2">
         <button
           onClick={() => openDialog('dimensions')}
           className="w-full h-10 font-display text-sm uppercase bg-wood-m text-white rounded hover:bg-wood-h focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wood-h"
         >
           View Parts List
+        </button>
+        <button
+          onClick={() => exportBoardGeometriesAsSTL(boardGeometries)}
+          disabled={boardGeometries.length === 0}
+          className="w-full h-10 font-display text-sm uppercase border border-wood-m text-wood-m rounded hover:bg-wood-m/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wood-h disabled:opacity-40 disabled:pointer-events-none"
+        >
+          Export STL
         </button>
       </div>
 

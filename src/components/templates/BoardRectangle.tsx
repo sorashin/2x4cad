@@ -1,32 +1,39 @@
 interface BoardRectangleProps {
   width: number;
   height: number;
-  maxWidth?: number;
+  /** 1mmあたりのpx数 */
+  scale: number;
+  color?: string;
+  label?: string;
 }
 
-export function BoardRectangle({ width, height, maxWidth = 200 }: BoardRectangleProps) {
-  const scale = maxWidth / Math.max(width, 1);
-  const scaledWidth = Math.max(width * scale, 32);
-  const scaledHeight = Math.max(height * scale, 12);
+export function BoardRectangle({ width, height, scale, color, label }: BoardRectangleProps) {
+  const scaledWidth = Math.max(width * scale, 24);
+  const scaledHeight = Math.max(height * scale, 8);
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-1">
       {/* Board visualization */}
       <div
-        className="bg-wood-l border border-wood-m flex items-center justify-center"
+        className="flex items-center justify-center"
         style={{
           width: `${scaledWidth}px`,
           height: `${scaledHeight}px`,
+          backgroundColor: color ? `${color}33` : undefined,
+          borderColor: color ?? undefined,
+          borderWidth: '1px',
+          borderStyle: 'solid',
+          ...(!color && { backgroundColor: 'var(--color-wood-l)', borderColor: 'var(--color-wood-m)' }),
         }}
       >
-        <span className="font-display text-[10px] text-wood-h tabular-nums truncate px-1">
+        <span className="font-display text-[10px] tabular-nums truncate px-1" style={{ color: color ?? undefined, ...(!color && { color: 'var(--color-wood-h)' }) }}>
           {width}
         </span>
       </div>
 
-      {/* Dimensions label */}
+      {/* Label */}
       <span className="font-display text-[10px] text-content-m tabular-nums">
-        {width} × {height}
+        {label ?? `${width} × ${height}`}
       </span>
     </div>
   );

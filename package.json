@@ -17,7 +17,7 @@
     "jspdf": "^4.0.0",
     "leva": "^0.10.1",
     "nanoid": "^5.1.6",
-    "nodi-modular": "^0.0.37",
+    "nodi-modular": "^0.0.39",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0",

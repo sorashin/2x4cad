@@ -30,8 +30,8 @@ importers:
         specifier: ^5.1.6
         version: 5.1.6
       nodi-modular:
-        specifier: ^0.0.37
-        version: 0.0.37
+        specifier: ^0.0.39
+        version: 0.0.39
       react:
         specifier: ^19.2.0
         version: 19.2.0
@@ -1852,8 +1852,8 @@ packages:
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
 
-  nodi-modular@0.0.37:
-    resolution: {integrity: sha512-WqyM0GQGIWHOprZbmtXJRZSZFgqn0zkaH4Dr5yCi2femgPOpM2idCtZXbgmb/WXovtU1VqVdUPPxHfT7UU7VAQ==}
+  nodi-modular@0.0.39:
+    resolution: {integrity: sha512-i9pZ4PotfFfZ328KiYfwlsWYopH6L4H4DkG+z4msoBwo13vMr1ubMG8D10esUNiD/9+QOhUcAARbnD0MPRZGRQ==}
 
   normalize-range@0.1.2:
     resolution: {integrity: sha512-bdok/XvKII3nUpklnV6P2hxtMNrCboOjAcyBuQnWEhO665FwrSNRxU+AqpsyvO6LgGYPspN+lu5CLtw4jPRKNA==}
@@ -3978,7 +3978,7 @@ snapshots:
 
   node-releases@2.0.27: {}
 
-  nodi-modular@0.0.37: {}
+  nodi-modular@0.0.39: {}
 
   normalize-range@0.1.2: {}
 

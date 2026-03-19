@@ -24,6 +24,17 @@ function groupBoardGeometriesByBoardName(
   return grouped;
 }
 
+/** 同一グループ内を長さ別にサブグループ化 */
+function groupByLength(items: BoardGeometryWithId[]): BoardGeometryWithId[][] {
+  const map = new Map<number, BoardGeometryWithId[]>();
+  for (const g of items) {
+    const len = g.boardLength;
+    if (!map.has(len)) map.set(len, []);
+    map.get(len)!.push(g);
+  }
+  return [...map.entries()].sort((a, b) => b[0] - a[0]).map(([, v]) => v);
+}
+
 /** boardType から断面の高さ（表示用）を取得 */
 function getBoardCrossSectionHeight(boardType: BoardGeometryWithId['boardType']): number {
   const dims = LUMBER_DIMENSIONS[boardType];
@@ -55,6 +66,13 @@ export function DialogDimensions({ isOpen, onClose }: DialogDimensionsProps) {
   };
 
   const totalParts = boardGeometries.length;
+
+  const maxLength = useMemo(
+    () => Math.max(...boardGeometries.map((g) => g.boardLength), 1),
+    [boardGeometries]
+  );
+  const dialogContentWidth = 460;
+  const dialogPxPerMm = dialogContentWidth / maxLength;
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} className="max-h-[85vh] overflow-hidden flex flex-col">
@@ -100,15 +118,28 @@ export function DialogDimensions({ isOpen, onClose }: DialogDimensionsProps) {
                 </div>
 
                 {/* Board grid: 板の長さを矩形で表示 */}
-                <div className="flex flex-wrap gap-3">
-                  {items.map((g, index) => (
-                    <BoardRectangle
-                      key={`${boardName}-${index}`}
-                      width={g.boardLength}
-                      height={crossSectionHeight}
-                      maxWidth={120}
-                    />
-                  ))}
+                <div className="space-y-3">
+                  {groupByLength(items).map((subGroup) => {
+                    const colWidth = Math.max(subGroup[0].boardLength * dialogPxPerMm, 24);
+                    return (
+                      <div
+                        key={subGroup[0].boardLength}
+                        className="grid gap-3"
+                        style={{
+                          gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+                        }}
+                      >
+                        {subGroup.map((g, index) => (
+                          <BoardRectangle
+                            key={`${boardName}-${g.boardLength}-${index}`}
+                            width={g.boardLength}
+                            height={crossSectionHeight}
+                            scale={dialogPxPerMm}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             );
