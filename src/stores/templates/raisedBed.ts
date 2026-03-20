@@ -22,6 +22,10 @@ export const DEFAULT_BOARDS = [
     name: 'footBoard',
     type: '1x4' as LumberType,
     size: [20, 89] as [number, number]
+  },{
+    name: 'topBoard',
+    type: 'rafter' as LumberType,
+    size: [35, 35] as [number, number]
   }
 ] as const;
 

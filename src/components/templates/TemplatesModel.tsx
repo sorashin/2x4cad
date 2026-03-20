@@ -6,11 +6,7 @@ import { mmToUnits } from '../../constants';
 import { BoardMesh } from './BoardMesh';
 import { CasterModel } from './CasterModel';
 import { BOARD_COLOR_MAP } from '../../constants/boardColors';
-
-function getBoardGeometryKey(bg: { id: { graphNodeSet?: { nodeId?: string }; transform?: unknown } }, index: number): string {
-  const nodeId = bg.id.graphNodeSet?.nodeId ?? 'n';
-  return `${nodeId}-${index}`;
-}
+import { getBoardGeometryKey } from '../../utils/boardGeometryKey';
 
 const EXPLOSION_MULTIPLIER = 2;
 
@@ -52,14 +48,18 @@ export function TemplatesModel() {
 
   return (
     <group rotation={[Math.PI / 2, 0, 0]} scale={scale}>
-      {boardGeometries.map((bg, index) => (
-        <BoardMesh
-          key={getBoardGeometryKey(bg, index)}
-          boardGeometry={bg}
-          positionOffset={getOffset(bg)}
-          colorOverride={colorByBoard ? BOARD_COLOR_MAP[bg.boardName] : undefined}
-        />
-      ))}
+      {boardGeometries.map((bg, index) => {
+        const boardKey = getBoardGeometryKey(bg, index);
+        return (
+          <BoardMesh
+            key={boardKey}
+            boardKey={boardKey}
+            boardGeometry={bg}
+            positionOffset={getOffset(bg)}
+            colorOverride={colorByBoard ? BOARD_COLOR_MAP[bg.boardName] : undefined}
+          />
+        );
+      })}
       <CasterModel />
     </group>
   );

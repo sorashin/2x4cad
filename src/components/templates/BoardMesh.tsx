@@ -1,11 +1,13 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Html, Edges } from '@react-three/drei';
-import { Vector3 } from 'three';
+import { Vector3, EdgesGeometry } from 'three';
 import type { BoardGeometryWithId } from '../../stores/templates/modular';
 import { LUMBER_DIMENSIONS } from '../../types/lumber';
+import { useUIStore } from '../../stores/templates/ui';
 
 interface BoardMeshProps {
   boardGeometry: BoardGeometryWithId;
+  boardKey: string;
   positionOffset?: [number, number, number];
   colorOverride?: string;
 }
@@ -13,13 +15,18 @@ interface BoardMeshProps {
 const HOVER_OFF_DELAY_MS = 120;
 const LABEL_OFFSET_Y_PX = 60; // ラベルを上にオフセットするピクセル数
 
-export function BoardMesh({ boardGeometry, positionOffset, colorOverride }: BoardMeshProps) {
+export function BoardMesh({ boardGeometry, boardKey, positionOffset, colorOverride }: BoardMeshProps) {
   const [hovered, setHovered] = useState(false);
+  const hoveredBoardKey = useUIStore((s) => s.hoveredBoardKey);
+  const highlighted = hovered || hoveredBoardKey === boardKey;
   const hoverOffTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { geometry, boardName, boardType, boardLength } = boardGeometry;
 
   // LumberTypeから厚み・幅を取得
   const dimensions = LUMBER_DIMENSIONS[boardType];
+
+  // ハイライト用エッジジオメトリ
+  const edgesGeometry = useMemo(() => new EdgesGeometry(geometry, 45), [geometry]);
 
   // メッシュの中心位置を計算
   const meshCenter = useMemo(() => {
@@ -66,8 +73,23 @@ export function BoardMesh({ boardGeometry, positionOffset, colorOverride }: Boar
         }, HOVER_OFF_DELAY_MS);
       }}
     >
-      <meshStandardMaterial color={colorOverride ?? (hovered ? '#e5c9a8' : '#d4a373')} flatShading />
+      <meshStandardMaterial color={colorOverride ?? (highlighted ? '#e5c9a8' : '#d4a373')} flatShading />
       <Edges threshold={45} color="#8b5a2b" />
+
+      {highlighted && (
+        <lineSegments
+          geometry={edgesGeometry}
+          rotation={[Math.PI, 0, 0]}
+          renderOrder={999}
+        >
+          <lineBasicMaterial
+            color="#ff8800"
+            linewidth={1}
+            depthTest={false}
+            depthWrite={false}
+          />
+        </lineSegments>
+      )}
 
       {hovered && (
         <Html

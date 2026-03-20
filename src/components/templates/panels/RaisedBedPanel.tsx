@@ -7,6 +7,7 @@ import { exportBoardGeometriesAsSTL } from '../../../utils/stlExport';
 import { BOARD_COLOR_MAP } from '../../../constants/boardColors';
 import { BoardRectangle } from '../BoardRectangle';
 import { LUMBER_DIMENSIONS } from '../../../types/lumber';
+import { getBoardGeometryKey } from '../../../utils/boardGeometryKey';
 
 /** boardGeometries を boardName でグループ化した Record */
 function groupBoardGeometriesByBoardName(
@@ -35,7 +36,7 @@ function groupByLength(items: BoardGeometryWithId[]): BoardGeometryWithId[][] {
 
 export function RaisedBedPanel() {
   const { width, height, depth, setWidth, setHeight, setDepth } = useRaisedBedStore();
-  const { openDialog, colorByBoard } = useUIStore();
+  const { openDialog, colorByBoard, setHoveredBoardKey } = useUIStore();
   const boardGeometries = useModularStore((s) => s.boardGeometries);
 
   const boardGroups = useMemo(
@@ -54,6 +55,15 @@ export function RaisedBedPanel() {
     [boardGeometries]
   );
   const pxPerMm = containerWidth / maxLength;
+
+  // 各BoardGeometryWithIdオブジェクトの参照 → グローバルindex のマップ
+  const boardKeyMap = useMemo(() => {
+    const map = new Map<BoardGeometryWithId, string>();
+    boardGeometries.forEach((bg, index) => {
+      map.set(bg, getBoardGeometryKey(bg, index));
+    });
+    return map;
+  }, [boardGeometries]);
 
   return (
     <aside
@@ -140,16 +150,20 @@ export function RaisedBedPanel() {
                             gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
                           }}
                         >
-                          {subGroup.map((g, i) => (
-                            <BoardRectangle
-                              key={`${boardName}-${g.boardLength}-${i}`}
-                              width={g.boardLength}
-                              height={crossHeight}
-                              scale={pxPerMm}
-                              color={colorByBoard ? BOARD_COLOR_MAP[boardName] : undefined}
-                              label={g.boardType}
-                            />
-                          ))}
+                          {subGroup.map((g, i) => {
+                            const key = boardKeyMap.get(g);
+                            return (
+                              <BoardRectangle
+                                key={`${boardName}-${g.boardLength}-${i}`}
+                                width={g.boardLength}
+                                height={crossHeight}
+                                scale={pxPerMm}
+                                color={colorByBoard ? BOARD_COLOR_MAP[boardName] : undefined}
+                                label={g.boardType}
+                                onHover={(h) => setHoveredBoardKey(h ? key ?? null : null)}
+                              />
+                            );
+                          })}
                         </div>
                       );
                     })}

@@ -18,6 +18,8 @@ interface UIStoreState {
     setDrawerOpen: (open: boolean) => void;
     colorByBoard: boolean;
     toggleColorByBoard: () => void;
+    hoveredBoardKey: string | null;
+    setHoveredBoardKey: (key: string | null) => void;
 }
 
 export const useUIStore = create<UIStoreState>()((set) => ({
@@ -35,4 +37,6 @@ export const useUIStore = create<UIStoreState>()((set) => ({
   setDrawerOpen: (open) => set({ drawerOpen: open }),
   colorByBoard: false,
   toggleColorByBoard: () => set((s) => ({ colorByBoard: !s.colorByBoard })),
+  hoveredBoardKey: null,
+  setHoveredBoardKey: (key) => set({ hoveredBoardKey: key }),
 }));
