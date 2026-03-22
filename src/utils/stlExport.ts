@@ -1,4 +1,4 @@
-import { BufferGeometry, Mesh, MeshBasicMaterial, Scene } from 'three';
+import { Mesh, MeshBasicMaterial, Scene } from 'three';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 import type { BoardGeometryWithId } from '../stores/templates/modular';
 
